@@ -13,6 +13,9 @@ from django.db.models import Q
 from django.contrib import messages
 from .models import Component, Category, WireSize
 from .forms import ComponentForm, CategoryForm, WireSizeForm, WireCalculatorForm
+from .models import ApplianceLoad
+from .forms import ApplianceLoadForm, ProjectBuilderForm
+from . import services
 
 
 # ============================================================================
@@ -279,3 +282,125 @@ def wire_calculator(request):
         'wire_sizes': WireSize.objects.all().order_by('wire_size_mm2'),
     }
     return render(request, 'core/wire_calculator.html', context)
+
+
+def power_calculator_view(request):
+    """Power -> current calculator page which also recommends wire sizes."""
+    form = None
+    result = None
+    error = None
+    recommendations = None
+
+    if request.method == 'POST':
+        from .forms import WireCalculatorForm
+        # reuse WireCalculatorForm fields but expect both power and voltage
+        power = request.POST.get('power_watts')
+        voltage = request.POST.get('voltage')
+        try:
+            if not power or not voltage:
+                raise ValueError('Power and voltage are required')
+            current = services.power_to_current(power, voltage)
+            adjusted = services.adjusted_current_for_safety(current)
+            recommendations = services.recommend_wires_for_current(current)
+            result = {
+                'power_watts': power,
+                'voltage': voltage,
+                'current': current,
+                'adjusted_current': adjusted,
+            }
+        except Exception as exc:
+            error = str(exc)
+
+    # simple form context (we don't need a formal Django form here)
+    appliances = ApplianceLoad.objects.all()
+    context = {
+        'form': form,
+        'result': result,
+        'error': error,
+        'recommendations': recommendations,
+        'appliances': appliances,
+    }
+    return render(request, 'core/power_calculator.html', context)
+
+
+class ApplianceListView(ListView):
+    model = ApplianceLoad
+    template_name = 'core/appliance_list.html'
+    context_object_name = 'appliances'
+    paginate_by = 20
+
+
+class ApplianceDetailView(DetailView):
+    model = ApplianceLoad
+    template_name = 'core/appliance_detail.html'
+    context_object_name = 'appliance'
+
+
+class ApplianceCreateView(LoginRequiredMixin, CreateView):
+    model = ApplianceLoad
+    form_class = ApplianceLoadForm
+    template_name = 'core/appliance_form.html'
+    success_url = reverse_lazy('core:appliance-list')
+
+    def form_valid(self, form):
+        messages.success(self.request, f"Appliance '{form.cleaned_data['name']}' created successfully!")
+        return super().form_valid(form)
+
+
+class ApplianceUpdateView(LoginRequiredMixin, UpdateView):
+    model = ApplianceLoad
+    form_class = ApplianceLoadForm
+    template_name = 'core/appliance_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy('core:appliance-detail', kwargs={'pk': self.object.pk})
+
+    def form_valid(self, form):
+        messages.success(self.request, f"Appliance '{form.cleaned_data['name']}' updated successfully!")
+        return super().form_valid(form)
+
+
+class ApplianceDeleteView(LoginRequiredMixin, DeleteView):
+    model = ApplianceLoad
+    template_name = 'core/appliance_confirm_delete.html'
+    success_url = reverse_lazy('core:appliance-list')
+
+    def delete(self, request, *args, **kwargs):
+        name = self.get_object().name
+        messages.success(request, f"Appliance '{name}' deleted successfully!")
+        return super().delete(request, *args, **kwargs)
+
+
+def ProjectBuilderView(request):
+    """Select multiple appliances to summarise and get recommendations."""
+    form = ProjectBuilderForm(request.POST or None)
+    output = None
+    error = None
+    if request.method == 'POST' and form.is_valid():
+        appliances = form.cleaned_data['appliances']
+        total_power = sum([float(a.power_watts or 0) for a in appliances])
+        voltage = float(appliances.first().voltage or 230)
+        try:
+            total_current = services.power_to_current(total_power, voltage)
+        except ValueError as exc:
+            error = str(exc)
+            total_current = None
+
+        if total_current is not None:
+            adjusted = services.adjusted_current_for_safety(total_current)
+            recommendations = services.recommend_wires_for_current(total_current)
+            breaker = services.recommend_breaker_for_current(total_current)
+            output = {
+                'total_power_watts': total_power,
+                'total_current': total_current,
+                'adjusted_current': adjusted,
+                'recommended_breaker': breaker,
+                'recommendations': recommendations,
+            }
+
+    context = {
+        'form': form,
+        'output': output,
+        'error': error,
+    }
+    return render(request, 'core/project_builder.html', context)

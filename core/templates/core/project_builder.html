@@ -1,0 +1,39 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container py-4">
+  <h2>Project Builder</h2>
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+      {{ form.appliances.label_tag }}
+      {{ form.appliances }}
+    </div>
+    <button class="btn btn-primary">Build Project</button>
+  </form>
+
+  {% if error %}
+    <div class="alert alert-danger mt-3">{{ error }}</div>
+  {% endif %}
+
+  {% if output %}
+    <div class="card mt-3">
+      <div class="card-body">
+        <h5 class="card-title">Summary</h5>
+        <p>Total Power: {{ output.total_power_watts }} W</p>
+        <p>Total Current: {{ output.total_current }} A</p>
+        <p>Adjusted Current (×1.25): {{ output.adjusted_current }} A</p>
+        <p>Recommended Breaker: {{ output.recommended_breaker }} A</p>
+
+        <h6>Recommended Wire Sizes</h6>
+        <ul>
+          {% for w in output.recommendations %}
+            <li>{{ w.wire_size_mm2 }} mm² — {{ w.max_ampacity }} A</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

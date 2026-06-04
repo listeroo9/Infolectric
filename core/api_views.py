@@ -12,6 +12,9 @@ from .serializers import (
     ComponentSerializer, CategorySerializer, WireSizeSerializer,
     WireRecommendationSerializer
 )
+from .serializers import ApplianceLoadSerializer, PowerToCurrentSerializer, ProjectBuilderOutputSerializer
+from .models import ApplianceLoad
+from . import services
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -150,3 +153,73 @@ class WireRecommendationViewSet(viewsets.ViewSet):
             })
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ApplianceLoadViewSet(viewsets.ModelViewSet):
+    """API endpoint for ApplianceLoad CRUD."""
+    queryset = ApplianceLoad.objects.all()
+    serializer_class = ApplianceLoadSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'category__name']
+    ordering_fields = ['name', 'power_watts']
+
+
+class PowerCalcViewSet(viewsets.ViewSet):
+    """API endpoint to convert power->current and recommend wires."""
+
+    @action(detail=False, methods=['post'])
+    def power_to_current(self, request):
+        serializer = PowerToCurrentSerializer(data=request.data)
+        if serializer.is_valid():
+            power = serializer.validated_data['power_watts']
+            voltage = serializer.validated_data['voltage']
+            try:
+                current = services.power_to_current(power, voltage)
+            except ValueError as exc:
+                return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+            recommendations = services.recommend_wires_for_current(current)
+            out = {
+                'power_watts': power,
+                'voltage': voltage,
+                'current': current,
+                'recommendations': recommendations,
+            }
+            return Response(out)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ProjectBuilderViewSet(viewsets.ViewSet):
+    """API endpoint to build a project from selected appliances and get recommendations."""
+
+    @action(detail=False, methods=['post'])
+    def build(self, request):
+        # Expect list of appliance IDs
+        ids = request.data.get('appliance_ids', [])
+        if not isinstance(ids, list) or not ids:
+            return Response({'error': 'appliance_ids must be a non-empty list of IDs'}, status=status.HTTP_400_BAD_REQUEST)
+
+        appliances = ApplianceLoad.objects.filter(id__in=ids)
+        if not appliances.exists():
+            return Response({'error': 'No appliances found for given ids'}, status=status.HTTP_404_NOT_FOUND)
+
+        total_power = sum([float(a.power_watts or 0) for a in appliances])
+        # use default voltage from first appliance if present, otherwise 230
+        voltage = float(appliances.first().voltage or 230)
+        try:
+            total_current = services.power_to_current(total_power, voltage)
+        except ValueError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        adjusted = services.adjusted_current_for_safety(total_current)
+        recommendations = services.recommend_wires_for_current(total_current)
+        breaker = services.recommend_breaker_for_current(total_current)
+
+        out = {
+            'total_power_watts': total_power,
+            'total_current': total_current,
+            'adjusted_current': adjusted,
+            'recommended_breaker': breaker,
+            'recommendations': recommendations,
+        }
+        return Response(out)

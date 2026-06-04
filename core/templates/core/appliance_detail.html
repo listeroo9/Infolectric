@@ -1,0 +1,13 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container py-4">
+  <h2>{{ appliance.name }}</h2>
+  <p>Power: {{ appliance.power_watts }} W</p>
+  <p>Voltage: {{ appliance.voltage }} V</p>
+  <p>Estimated Current: {{ appliance.estimated_current }} A</p>
+  <p>Category: {{ appliance.category }}</p>
+  <a href="{% url 'core:appliance-update' appliance.pk %}" class="btn btn-secondary">Edit</a>
+  <a href="{% url 'core:appliance-delete' appliance.pk %}" class="btn btn-danger">Delete</a>
+</div>
+{% endblock %}

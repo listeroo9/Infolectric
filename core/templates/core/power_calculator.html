@@ -1,0 +1,49 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container py-4">
+  <h2>Power → Current Calculator</h2>
+
+  <form method="post" class="row g-3">
+    {% csrf_token %}
+    <div class="col-md-4">
+      <label class="form-label">Power (W)</label>
+      <input name="power_watts" type="number" step="0.1" class="form-control" required>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Voltage (V)</label>
+      <input name="voltage" type="number" step="0.1" class="form-control" value="230" required>
+    </div>
+    <div class="col-md-4 align-self-end">
+      <button class="btn btn-primary">Calculate</button>
+    </div>
+  </form>
+
+  {% if error %}
+  <div class="alert alert-danger mt-3">{{ error }}</div>
+  {% endif %}
+
+  {% if result %}
+  <div class="card mt-3">
+    <div class="card-body">
+      <h5 class="card-title">Results</h5>
+      <p>Total Power: {{ result.power_watts }} W</p>
+      <p>Voltage: {{ result.voltage }} V</p>
+      <p>Current: {{ result.current }} A</p>
+      <p>Adjusted (×1.25): {{ result.adjusted_current }} A</p>
+
+      <h6>Recommended Wire Sizes</h6>
+      {% if recommendations %}
+        <ul>
+          {% for w in recommendations %}
+            <li>{{ w.wire_size_mm2 }} mm² — {{ w.max_ampacity }} A — {{ w.description }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted">No recommendations found.</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

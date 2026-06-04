@@ -5,6 +5,7 @@ Register models for admin interface.
 
 from django.contrib import admin
 from .models import Component, Category, WireSize
+from .models import ApplianceLoad
 
 
 @admin.register(Category)
@@ -60,4 +61,19 @@ class WireSizeAdmin(admin.ModelAdmin):
             'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
+    )
+
+
+@admin.register(ApplianceLoad)
+class ApplianceLoadAdmin(admin.ModelAdmin):
+    """Admin for ApplianceLoad model."""
+    list_display = ['name', 'power_watts', 'voltage', 'estimated_current', 'category', 'created_at']
+    search_fields = ['name', 'category__name']
+    list_filter = ['voltage', 'category']
+    readonly_fields = ['estimated_current', 'created_at', 'updated_at']
+    ordering = ['name']
+    fieldsets = (
+        ('Basic', {'fields': ('name', 'category')}),
+        ('Specs', {'fields': ('power_watts', 'voltage', 'estimated_current')}),
+        ('Timestamps', {'fields': ('created_at', 'updated_at'), 'classes': ('collapse',)}),
     )

@@ -18,6 +18,9 @@ router.register(r'categories', api_views.CategoryViewSet, basename='api-category
 router.register(r'components', api_views.ComponentViewSet, basename='api-component')
 router.register(r'wire-sizes', api_views.WireSizeViewSet, basename='api-wiresize')
 router.register(r'wire-recommendation', api_views.WireRecommendationViewSet, basename='api-wire-recommendation')
+router.register(r'appliances', api_views.ApplianceLoadViewSet, basename='api-appliance')
+router.register(r'power', api_views.PowerCalcViewSet, basename='api-power')
+router.register(r'project-builder', api_views.ProjectBuilderViewSet, basename='api-project-builder')
 
 urlpatterns = [
     # ========================================================================
@@ -61,4 +64,15 @@ urlpatterns = [
     # CALCULATOR ROUTES
     # ========================================================================
     path('calculator/', views.wire_calculator, name='calculator'),
+    path('power-calculator/', views.power_calculator_view, name='power-calculator'),
+
+    # Appliance CRUD
+    path('appliances/', views.ApplianceListView.as_view(), name='appliance-list'),
+    path('appliances/create/', views.ApplianceCreateView.as_view(), name='appliance-create'),
+    path('appliances/<int:pk>/', views.ApplianceDetailView.as_view(), name='appliance-detail'),
+    path('appliances/<int:pk>/update/', views.ApplianceUpdateView.as_view(), name='appliance-update'),
+    path('appliances/<int:pk>/delete/', views.ApplianceDeleteView.as_view(), name='appliance-delete'),
+
+    # Project Builder
+    path('project-builder/', views.ProjectBuilderView, name='project-builder'),
 ]

@@ -5,6 +5,7 @@ Includes forms for Component, Category, and WireSize models.
 
 from django import forms
 from .models import Component, Category, WireSize
+from .models import ApplianceLoad
 
 
 class CategoryForm(forms.ModelForm):
@@ -117,4 +118,25 @@ class WireCalculatorForm(forms.Form):
             'placeholder': 'Enter required current in amperes',
             'step': '0.1'
         })
+    )
+
+
+class ApplianceLoadForm(forms.ModelForm):
+    class Meta:
+        model = ApplianceLoad
+        fields = ['name', 'voltage', 'power_watts', 'category']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'voltage': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
+            'power_watts': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
+            'category': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+
+class ProjectBuilderForm(forms.Form):
+    """Form to select multiple appliances to build a project load."""
+    appliances = forms.ModelMultipleChoiceField(
+        queryset=ApplianceLoad.objects.all(),
+        widget=forms.SelectMultiple(attrs={'class': 'form-select', 'size': 8}),
+        required=True
     )

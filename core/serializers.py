@@ -5,6 +5,7 @@ Converts model instances to/from JSON.
 
 from rest_framework import serializers
 from .models import Component, Category, WireSize
+from .models import ApplianceLoad
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -54,3 +55,25 @@ class WireRecommendationSerializer(serializers.Serializer):
     """Serializer for wire recommendation calculator request/response."""
     required_current = serializers.DecimalField(max_digits=6, decimal_places=2)
     recommendations = WireSizeSerializer(many=True, read_only=True)
+
+
+class ApplianceLoadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ApplianceLoad
+        fields = ['id', 'name', 'voltage', 'power_watts', 'category', 'estimated_current', 'created_at', 'updated_at']
+        read_only_fields = ['estimated_current', 'created_at', 'updated_at']
+
+
+class PowerToCurrentSerializer(serializers.Serializer):
+    power_watts = serializers.DecimalField(max_digits=10, decimal_places=2)
+    voltage = serializers.DecimalField(max_digits=8, decimal_places=2)
+    current = serializers.DecimalField(max_digits=10, decimal_places=4, read_only=True)
+    recommendations = WireSizeSerializer(many=True, read_only=True)
+
+
+class ProjectBuilderOutputSerializer(serializers.Serializer):
+    total_power_watts = serializers.DecimalField(max_digits=12, decimal_places=2)
+    total_current = serializers.DecimalField(max_digits=12, decimal_places=4)
+    adjusted_current = serializers.DecimalField(max_digits=12, decimal_places=4)
+    recommended_breaker = serializers.IntegerField()
+    recommendations = WireSizeSerializer(many=True)

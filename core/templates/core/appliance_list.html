@@ -1,0 +1,35 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center">
+    <h2>Appliances</h2>
+    <a href="{% url 'core:appliance-create' %}" class="btn btn-primary">Add Appliance</a>
+  </div>
+
+  <table class="table mt-3">
+    <thead>
+      <tr><th>Name</th><th>Power (W)</th><th>Voltage (V)</th><th>Current (A)</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for a in appliances %}
+      <tr>
+        <td><a href="{% url 'core:appliance-detail' a.pk %}">{{ a.name }}</a></td>
+        <td>{{ a.power_watts }}</td>
+        <td>{{ a.voltage }}</td>
+        <td>{{ a.estimated_current }}</td>
+        <td>
+          <a href="{% url 'core:appliance-update' a.pk %}" class="btn btn-sm btn-secondary">Edit</a>
+          <a href="{% url 'core:appliance-delete' a.pk %}" class="btn btn-sm btn-danger">Delete</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5">No appliances yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if is_paginated %}
+    {% include 'pagination.html' %}
+  {% endif %}
+</div>
+{% endblock %}
