@@ -3,6 +3,7 @@ Views for the Infolectric application.
 Includes CRUD views, search, filtering, and calculator functionality.
 """
 
+from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import (
     ListView, DetailView, CreateView, UpdateView, DeleteView
@@ -248,37 +249,56 @@ def index(request):
 def wire_calculator(request):
     """
     Wire size recommendation calculator.
-    User enters required current, system returns matching wire sizes.
+    Supports power + voltage or direct current input.
     """
     from django.db.models import Max
     
     form = WireCalculatorForm()
     recommendations = None
     error_message = None
-    required_current_value = None
+    result = None
+    used_current_mode = False
 
     if request.method == 'POST':
         form = WireCalculatorForm(request.POST)
         if form.is_valid():
-            required_current_value = float(form.cleaned_data['required_current'])
-            
-            # Find all wire sizes with ampacity >= required current
-            recommendations = WireSize.objects.filter(
-                max_ampacity__gte=required_current_value
-            ).order_by('wire_size_mm2')
-            
-            if not recommendations:
-                max_available = WireSize.objects.aggregate(max_amp=Max('max_ampacity'))['max_amp']
-                error_message = (
-                    f"No wire sizes found for {required_current_value}A. "
-                    f"Maximum available ampacity is {max_available}A."
+            power = form.cleaned_data.get('power_watts')
+            voltage = form.cleaned_data.get('voltage')
+            current = form.cleaned_data.get('current')
+            computed_current = form.cleaned_data.get('calculated_current')
+
+            try:
+                current_value = services.calculate_current(
+                    power_watts=power,
+                    voltage=voltage,
+                    current=current
                 )
+                adjusted_current = services.adjusted_current_for_safety(current_value)
+                recommendations = services.recommend_wires_for_current(current_value)
+                used_current_mode = current is not None and power is None
+
+                if not recommendations:
+                    max_available = WireSize.objects.aggregate(max_amp=Max('max_ampacity'))['max_amp']
+                    error_message = (
+                        f"No wire sizes found for adjusted current {adjusted_current}A. "
+                        f"Maximum available ampacity is {max_available}A."
+                    )
+                else:
+                    result = {
+                        'power_watts': power,
+                        'voltage': voltage or Decimal('220'),
+                        'current': current_value,
+                        'adjusted_current': adjusted_current,
+                    }
+            except Exception as exc:
+                error_message = str(exc)
 
     context = {
         'form': form,
         'recommendations': recommendations,
         'error_message': error_message,
-        'required_current_value': required_current_value,
+        'result': result,
+        'used_current_mode': used_current_mode,
         'wire_sizes': WireSize.objects.all().order_by('wire_size_mm2'),
     }
     return render(request, 'core/wire_calculator.html', context)

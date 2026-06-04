@@ -27,16 +27,52 @@
                     {% endif %}
 
                     <div class="mb-4">
-                        <label for="{{ form.required_current.id_for_label }}" class="form-label">
-                            <strong>{{ form.required_current.label }}</strong>
+                        <h6>Electrical Inputs</h6>
+                        <label for="{{ form.power_watts.id_for_label }}" class="form-label">
+                            <strong>{{ form.power_watts.label }}</strong>
                         </label>
-                        {{ form.required_current }}
+                        {{ form.power_watts }}
                         <small class="form-text text-muted d-block mt-2">
-                            Enter the current your circuit requires. Example: 10 for 10 amps, 15.5 for 15.5 amps
+                            Enter power in watts. Use this with voltage to calculate current automatically.
                         </small>
-                        {% if form.required_current.errors %}
+                        {% if form.power_watts.errors %}
                             <div class="invalid-feedback d-block">
-                                {% for error in form.required_current.errors %}
+                                {% for error in form.power_watts.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="{{ form.voltage.id_for_label }}" class="form-label">
+                            <strong>{{ form.voltage.label }}</strong>
+                        </label>
+                        {{ form.voltage }}
+                        <small class="form-text text-muted d-block mt-2">
+                            Default is 220V. Leave blank only if you are providing current directly.
+                        </small>
+                        {% if form.voltage.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.voltage.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <h6>Advanced Input</h6>
+                        <label for="{{ form.current.id_for_label }}" class="form-label">
+                            <strong>{{ form.current.label }}</strong>
+                        </label>
+                        {{ form.current }}
+                        <small class="form-text text-muted d-block mt-2">
+                            Optional: provide current directly if you already know the circuit amperage.
+                        </small>
+                        {% if form.current.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.current.errors %}
                                     {{ error }}
                                 {% endfor %}
                             </div>
@@ -82,9 +118,24 @@
                     </h5>
                 </div>
                 <div class="card-body">
+                    {% if result %}
+                        <div class="mb-4">
+                            <h6>Calculated Values</h6>
+                            <p>Power: <strong>{{ result.power_watts|default:'N/A' }} W</strong></p>
+                            <p>Voltage: <strong>{{ result.voltage|default:'220' }} V</strong></p>
+                            <p>Computed Current: <strong>{{ result.current }} A</strong></p>
+                            <p>Adjusted Current: <strong>{{ result.adjusted_current }} A</strong></p>
+                        </div>
+                    {% endif %}
+
+                    {% if used_current_mode %}
+                        <div class="alert alert-secondary">
+                            <strong>Tip:</strong> Use Power + Voltage for more accurate calculations, but direct current input still works.
+                        </div>
+                    {% endif %}
+
                     <p class="mb-4">
-                        For a required current of <strong>{{ recommendations.0|first }}</strong> amps, 
-                        the following wire sizes are suitable:
+                        The following wire sizes meet the adjusted current requirement:
                     </p>
 
                     {% for wire in recommendations %}

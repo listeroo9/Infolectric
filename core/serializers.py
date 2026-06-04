@@ -3,6 +3,7 @@ Serializers for the Infolectric API.
 Converts model instances to/from JSON.
 """
 
+from decimal import Decimal
 from rest_framework import serializers
 from .models import Component, Category, WireSize
 from .models import ApplianceLoad
@@ -65,10 +66,25 @@ class ApplianceLoadSerializer(serializers.ModelSerializer):
 
 
 class PowerToCurrentSerializer(serializers.Serializer):
-    power_watts = serializers.DecimalField(max_digits=10, decimal_places=2)
-    voltage = serializers.DecimalField(max_digits=8, decimal_places=2)
-    current = serializers.DecimalField(max_digits=10, decimal_places=4, read_only=True)
+    power_watts = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    voltage = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, default=Decimal('220.00'))
+    current = serializers.DecimalField(max_digits=10, decimal_places=4, required=False)
+    computed_current = serializers.DecimalField(max_digits=10, decimal_places=4, read_only=True)
+    adjusted_current = serializers.DecimalField(max_digits=10, decimal_places=4, read_only=True)
     recommendations = WireSizeSerializer(many=True, read_only=True)
+
+    def validate(self, attrs):
+        power = attrs.get('power_watts')
+        voltage = attrs.get('voltage')
+        current = attrs.get('current')
+
+        if current is None and power is None:
+            raise serializers.ValidationError('Either current or power must be provided.')
+
+        if current is None and voltage is None:
+            attrs['voltage'] = Decimal('220.00')
+
+        return attrs
 
 
 class ProjectBuilderOutputSerializer(serializers.Serializer):

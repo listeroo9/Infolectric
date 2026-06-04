@@ -130,17 +130,18 @@ class WireRecommendationViewSet(viewsets.ViewSet):
         serializer = WireRecommendationSerializer(data=request.data)
         if serializer.is_valid():
             required_current = float(serializer.validated_data['required_current'])
+            adjusted_current = services.adjusted_current_for_safety(required_current)
             
-            # Find all wire sizes with ampacity >= required current
             wire_sizes = WireSize.objects.filter(
-                max_ampacity__gte=required_current
+                max_ampacity__gte=adjusted_current
             ).order_by('wire_size_mm2')
             
             if not wire_sizes.exists():
                 return Response(
                     {
-                        'error': f'No wire sizes available for {required_current}A',
+                        'error': f'No wire sizes available for adjusted current {adjusted_current}A',
                         'required_current': required_current,
+                        'adjusted_current': adjusted_current,
                         'recommendations': []
                     },
                     status=status.HTTP_404_NOT_FOUND
@@ -149,6 +150,7 @@ class WireRecommendationViewSet(viewsets.ViewSet):
             wire_serializer = WireSizeSerializer(wire_sizes, many=True)
             return Response({
                 'required_current': required_current,
+                'adjusted_current': adjusted_current,
                 'recommendations': wire_serializer.data
             })
         
@@ -171,18 +173,26 @@ class PowerCalcViewSet(viewsets.ViewSet):
     def power_to_current(self, request):
         serializer = PowerToCurrentSerializer(data=request.data)
         if serializer.is_valid():
-            power = serializer.validated_data['power_watts']
-            voltage = serializer.validated_data['voltage']
+            power = serializer.validated_data.get('power_watts')
+            voltage = serializer.validated_data.get('voltage')
+            current = serializer.validated_data.get('current')
             try:
-                current = services.power_to_current(power, voltage)
+                calculated_current = services.calculate_current(
+                    power_watts=power,
+                    voltage=voltage,
+                    current=current
+                )
             except ValueError as exc:
                 return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
-            recommendations = services.recommend_wires_for_current(current)
+            adjusted_current = services.adjusted_current_for_safety(calculated_current)
+            recommendations = services.recommend_wires_for_current(calculated_current)
             out = {
                 'power_watts': power,
                 'voltage': voltage,
                 'current': current,
+                'computed_current': calculated_current,
+                'adjusted_current': adjusted_current,
                 'recommendations': recommendations,
             }
             return Response(out)

@@ -107,18 +107,66 @@ class WireSizeForm(forms.ModelForm):
 class WireCalculatorForm(forms.Form):
     """
     Form for the wire recommendation calculator.
-    User inputs required current in amps.
+    Supports power + voltage calculation or direct current input.
     """
-    required_current = forms.DecimalField(
-        label='Required Current (Amps)',
+    power_watts = forms.DecimalField(
+        label='Power (Watts)',
+        required=False,
         min_value=0.01,
         decimal_places=2,
         widget=forms.NumberInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Enter required current in amperes',
+            'placeholder': 'Enter power in watts',
             'step': '0.1'
         })
     )
+    voltage = forms.DecimalField(
+        label='Voltage (Volts)',
+        required=False,
+        min_value=0.1,
+        decimal_places=2,
+        initial=220,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter voltage in volts',
+            'step': '0.1'
+        })
+    )
+    current = forms.DecimalField(
+        label='Current (Amps)',
+        required=False,
+        min_value=0.01,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter current in amperes (optional)',
+            'step': '0.1'
+        })
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        power = cleaned_data.get('power_watts')
+        voltage = cleaned_data.get('voltage')
+        current = cleaned_data.get('current')
+
+        if current is None and power is None:
+            raise forms.ValidationError(
+                'Provide either current directly or both power and voltage.'
+            )
+
+        if current is None:
+            if voltage is None:
+                cleaned_data['voltage'] = Decimal('220.00')
+                voltage = cleaned_data['voltage']
+            try:
+                cleaned_data['calculated_current'] = Decimal(power) / Decimal(voltage)
+            except Exception:
+                raise forms.ValidationError('Power and voltage must be valid numbers.')
+        else:
+            cleaned_data['calculated_current'] = current
+
+        return cleaned_data
 
 
 class ApplianceLoadForm(forms.ModelForm):

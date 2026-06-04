@@ -24,8 +24,27 @@ def power_to_current(power_watts: Decimal, voltage: Decimal) -> Decimal:
     if v == 0:
         raise ValueError('Voltage must be non-zero')
 
-    # return current as Decimal
     return p / v
+
+
+def calculate_current(power_watts: Decimal = None, voltage: Decimal = None, current: Decimal = None) -> Decimal:
+    """Compute current using power/voltage or direct current input.
+
+    If both power and voltage are present, use P/V.
+    Otherwise, use provided current directly.
+    """
+    if power_watts is not None:
+        if voltage is None:
+            voltage = Decimal('220')
+        return power_to_current(power_watts, voltage)
+
+    if current is not None:
+        try:
+            return Decimal(current)
+        except (InvalidOperation, TypeError):
+            raise ValueError('Invalid current value')
+
+    raise ValueError('Either power/voltage or current must be provided')
 
 
 SAFETY_FACTOR = Decimal('1.25')
