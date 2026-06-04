@@ -3,247 +3,279 @@
 {% block title %}Wire Calculator - Infolectric{% endblock %}
 
 {% block content %}
-<div class="hero-section" style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); padding: 3rem 0;">
-    <h1><i class="fas fa-calculator"></i> Wire Size Calculator</h1>
-    <p>Find the perfect wire size for your electrical application</p>
-</div>
+<div class="container py-4">
+  <!-- HEADER SECTION -->
+  <div class="mb-5 pb-3 border-bottom">
+    <h1 class="mb-2"><i class="fas fa-calculator"></i> Wire Size Calculator</h1>
+    <p class="text-muted">Find the perfect wire size for your electrical application</p>
+  </div>
 
-<div class="row">
-    <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header" style="background-color: #16a34a;">
-                <h5 class="mb-0">Calculator</h5>
-            </div>
-            <div class="card-body">
-                <form method="post">
-                    {% csrf_token %}
-                    
-                    {% if form.non_field_errors %}
-                        <div class="alert alert-danger">
-                            {% for error in form.non_field_errors %}
-                                {{ error }}
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-
-                    <div class="mb-4">
-                        <h6>Electrical Inputs</h6>
-                        <label for="{{ form.power_watts.id_for_label }}" class="form-label">
-                            <strong>{{ form.power_watts.label }}</strong>
-                        </label>
-                        {{ form.power_watts }}
-                        <small class="form-text text-muted d-block mt-2">
-                            Enter power in watts. Use this with voltage to calculate current automatically.
-                        </small>
-                        {% if form.power_watts.errors %}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.power_watts.errors %}
-                                    {{ error }}
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="{{ form.voltage.id_for_label }}" class="form-label">
-                            <strong>{{ form.voltage.label }}</strong>
-                        </label>
-                        {{ form.voltage }}
-                        <small class="form-text text-muted d-block mt-2">
-                            Default is 220V. Leave blank only if you are providing current directly.
-                        </small>
-                        {% if form.voltage.errors %}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.voltage.errors %}
-                                    {{ error }}
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <div class="mb-4">
-                        <h6>Advanced Input</h6>
-                        <label for="{{ form.current.id_for_label }}" class="form-label">
-                            <strong>{{ form.current.label }}</strong>
-                        </label>
-                        {{ form.current }}
-                        <small class="form-text text-muted d-block mt-2">
-                            Optional: provide current directly if you already know the circuit amperage.
-                        </small>
-                        {% if form.current.errors %}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.current.errors %}
-                                    {{ error }}
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <button type="submit" class="btn btn-success btn-lg w-100">
-                        <i class="fas fa-arrow-right"></i> Calculate Recommendations
-                    </button>
-                </form>
-            </div>
+  <!-- CALCULATOR FORM SECTION -->
+  <div class="row mb-5">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-success">
+          <h5 class="mb-0">Calculator</h5>
         </div>
+        <div class="card-body p-4">
+          <form method="post">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger" role="alert">
+                {% for error in form.non_field_errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% endif %}
 
-        <!-- INFO CARD -->
-        <div class="card mt-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-info-circle"></i> How It Works</h5>
-            </div>
-            <div class="card-body" style="font-size: 0.9rem;">
-                <ol>
-                    <li>Enter the required current (amperage) for your circuit</li>
-                    <li>Click "Calculate Recommendations"</li>
-                    <li>View all wire sizes that can safely handle that current</li>
-                    <li>Choose the most appropriate size for your application</li>
-                </ol>
-            </div>
-        </div>
-    </div>
-
-    <!-- RESULTS -->
-    <div class="col-lg-6">
-        {% if error_message %}
-            <div class="alert alert-danger" role="alert">
-                <i class="fas fa-exclamation-circle"></i> {{ error_message }}
-            </div>
-        {% endif %}
-
-        {% if recommendations %}
-            <div class="card">
-                <div class="card-header" style="background-color: #16a34a;">
-                    <h5 class="mb-0">
-                        <i class="fas fa-check-circle"></i> Recommended Wire Sizes
-                    </h5>
-                </div>
-                <div class="card-body">
-                    {% if result %}
-                        <div class="mb-4">
-                            <h6>Calculated Values</h6>
-                            <p>Power: <strong>{{ result.power_watts|default:'N/A' }} W</strong></p>
-                            <p>Voltage: <strong>{{ result.voltage|default:'220' }} V</strong></p>
-                            <p>Computed Current: <strong>{{ result.current }} A</strong></p>
-                            <p>Adjusted Current: <strong>{{ result.adjusted_current }} A</strong></p>
-                        </div>
-                    {% endif %}
-
-                    {% if used_current_mode %}
-                        <div class="alert alert-secondary">
-                            <strong>Tip:</strong> Use Power + Voltage for more accurate calculations, but direct current input still works.
-                        </div>
-                    {% endif %}
-
-                    <p class="mb-4">
-                        The following wire sizes meet the adjusted current requirement:
-                    </p>
-
-                    {% for wire in recommendations %}
-                        <div class="card mb-3" style="border-left: 4px solid #16a34a;">
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <h6 class="text-muted">Wire Size</h6>
-                                        <p style="font-size: 1.5rem; font-weight: bold; color: #1e40af;">
-                                            {{ wire.wire_size_mm2 }} mm²
-                                        </p>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <h6 class="text-muted">Max Ampacity</h6>
-                                        <p style="font-size: 1.5rem; font-weight: bold; color: #16a34a;">
-                                            {{ wire.max_ampacity }}A
-                                        </p>
-                                    </div>
-                                </div>
-                                {% if wire.description %}
-                                    <hr style="margin: 0.75rem 0;">
-                                    <p style="font-size: 0.85rem; margin-bottom: 0;">
-                                        <strong>Application:</strong> {{ wire.description }}
-                                    </p>
-                                {% endif %}
-                                <div class="mt-2">
-                                    <a href="{% url 'core:wiresize-detail' wire.id %}" class="btn btn-sm btn-primary">
-                                        <i class="fas fa-details"></i> View Details
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
+            <!-- Electrical Inputs Group -->
+            <fieldset class="mb-4 pb-4 border-bottom">
+              <legend class="fs-6 fw-bold mb-3">Electrical Inputs</legend>
+              
+              <div class="mb-3">
+                <label for="{{ form.power_watts.id_for_label }}" class="form-label">
+                  <strong>{{ form.power_watts.label }}</strong>
+                </label>
+                {{ form.power_watts }}
+                <small class="form-text text-muted d-block mt-2">
+                  Enter power in watts. Use this with voltage to calculate current automatically.
+                </small>
+                {% if form.power_watts.errors %}
+                  <div class="invalid-feedback d-block">
+                    {% for error in form.power_watts.errors %}
+                      {{ error }}
                     {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
 
-                    <div class="alert alert-info mt-4">
-                        <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Choose the wire size that best fits your 
-                        application. Larger sizes provide more safety margin but cost more. Consider temperature, 
-                        installation method, and local electrical codes.
-                    </div>
-                </div>
-            </div>
-        {% endif %}
-    </div>
-</div>
+              <div class="mb-0">
+                <label for="{{ form.voltage.id_for_label }}" class="form-label">
+                  <strong>{{ form.voltage.label }}</strong>
+                </label>
+                {{ form.voltage }}
+                <small class="form-text text-muted d-block mt-2">
+                  Default is 220V. Leave blank only if you are providing current directly.
+                </small>
+                {% if form.voltage.errors %}
+                  <div class="invalid-feedback d-block">
+                    {% for error in form.voltage.errors %}
+                      {{ error }}
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </fieldset>
 
-<!-- GUIDELINES -->
-<div class="row mt-5">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-graduation-cap"></i> Wire Selection Guidelines</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <h6 style="color: #1e40af;"><i class="fas fa-home"></i> Residential</h6>
-                        <p style="font-size: 0.9rem;">
-                            Typical household circuits use 1.5mm² (lighting), 2.5mm² (outlets), 
-                            or 4mm² (high-demand circuits).
-                        </p>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <h6 style="color: #1e40af;"><i class="fas fa-industry"></i> Industrial</h6>
-                        <p style="font-size: 0.9rem;">
-                            Industrial applications often require 10mm², 16mm², 25mm² or larger 
-                            depending on power demands.
-                        </p>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <h6 style="color: #1e40af;"><i class="fas fa-exclamation-triangle"></i> Safety</h6>
-                        <p style="font-size: 0.9rem;">
-                            Never use undersized wire. Always consult local electrical codes and 
-                            have work done by qualified electricians.
-                        </p>
-                    </div>
-                </div>
-            </div>
+            <!-- Advanced Input Group -->
+            <fieldset class="mb-4">
+              <legend class="fs-6 fw-bold mb-3">Advanced Input</legend>
+              
+              <div class="mb-0">
+                <label for="{{ form.current.id_for_label }}" class="form-label">
+                  <strong>{{ form.current.label }}</strong>
+                </label>
+                {{ form.current }}
+                <small class="form-text text-muted d-block mt-2">
+                  Optional: provide current directly if you already know the circuit amperage.
+                </small>
+                {% if form.current.errors %}
+                  <div class="invalid-feedback d-block">
+                    {% for error in form.current.errors %}
+                      {{ error }}
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </fieldset>
+
+            <button type="submit" class="btn btn-success btn-lg w-100">
+              <i class="fas fa-arrow-right"></i> Calculate Recommendations
+            </button>
+          </form>
         </div>
+      </div>
     </div>
-</div>
+  </div>
 
-<!-- ALL WIRE SIZES TABLE -->
-<div class="row mt-5">
+  <!-- ERROR MESSAGE SECTION -->
+  {% if error_message %}
+    <div class="row mb-5">
+      <div class="col-12">
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <i class="fas fa-exclamation-circle"></i> {{ error_message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- RESULTS SECTION -->
+  {% if recommendations %}
+    <div class="row mb-5">
+      <div class="col-12">
+        <div class="card shadow-sm">
+          <div class="card-header bg-success">
+            <h5 class="mb-0">
+              <i class="fas fa-check-circle"></i> Recommended Wire Sizes
+            </h5>
+          </div>
+          <div class="card-body p-4">
+            {% if result %}
+              <div class="row mb-4 pb-4 border-bottom">
+                <div class="col-md-3 mb-3 mb-md-0">
+                  <small class="text-muted d-block">Power</small>
+                  <strong class="fs-5">{{ result.power_watts|default:'N/A' }} W</strong>
+                </div>
+                <div class="col-md-3 mb-3 mb-md-0">
+                  <small class="text-muted d-block">Voltage</small>
+                  <strong class="fs-5">{{ result.voltage|default:'220' }} V</strong>
+                </div>
+                <div class="col-md-3 mb-3 mb-md-0">
+                  <small class="text-muted d-block">Computed Current</small>
+                  <strong class="fs-5">{{ result.current }} A</strong>
+                </div>
+                <div class="col-md-3">
+                  <small class="text-muted d-block">Adjusted Current</small>
+                  <strong class="fs-5">{{ result.adjusted_current }} A</strong>
+                </div>
+              </div>
+            {% endif %}
+
+            {% if used_current_mode %}
+              <div class="alert alert-secondary mb-4">
+                <strong>Tip:</strong> Use Power + Voltage for more accurate calculations, but direct current input still works.
+              </div>
+            {% endif %}
+
+            <p class="mb-4">
+              The following wire sizes meet the adjusted current requirement:
+            </p>
+
+            <div class="row g-3">
+              {% for wire in recommendations %}
+                <div class="col-md-6">
+                  <div class="card h-100 border-start border-success border-4">
+                    <div class="card-body">
+                      <div class="row mb-3">
+                        <div class="col-6">
+                          <small class="text-muted d-block">Wire Size</small>
+                          <p class="fs-5 fw-bold text-primary mb-0">{{ wire.wire_size_mm2 }} mm²</p>
+                        </div>
+                        <div class="col-6">
+                          <small class="text-muted d-block">Max Ampacity</small>
+                          <p class="fs-5 fw-bold text-success mb-0">{{ wire.max_ampacity }} A</p>
+                        </div>
+                      </div>
+                      {% if wire.description %}
+                        <hr class="my-2">
+                        <small class="text-muted d-block mb-2">
+                          <strong>Application:</strong> {{ wire.description }}
+                        </small>
+                      {% endif %}
+                      <a href="{% url 'core:wiresize-detail' wire.id %}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-arrow-right"></i> View Details
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+
+            <div class="alert alert-info mt-4">
+              <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Choose the wire size that best fits your application. 
+              Larger sizes provide more safety margin but cost more. Consider temperature, installation method, 
+              and local electrical codes.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- HOW IT WORKS SECTION -->
+  <div class="row mb-5">
     <div class="col-12">
-        <h3 class="mb-3"><i class="fas fa-table"></i> Complete Wire Reference</h3>
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-info-circle"></i> How It Works</h5>
+        </div>
+        <div class="card-body p-4">
+          <ol class="mb-0">
+            <li class="mb-2">Enter power in watts and voltage in volts, <strong>or</strong> enter current directly</li>
+            <li class="mb-2">Click "Calculate Recommendations"</li>
+            <li class="mb-2">System applies a 1.25× safety factor to the calculated current</li>
+            <li class="mb-0">View all wire sizes that can safely handle the adjusted current</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GUIDELINES SECTION -->
+  <div class="row mb-5">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-graduation-cap"></i> Wire Selection Guidelines</h5>
+        </div>
+        <div class="card-body p-4">
+          <div class="row">
+            <div class="col-md-4 mb-3 mb-md-0">
+              <h6 class="text-primary"><i class="fas fa-home"></i> Residential</h6>
+              <p class="small mb-0">
+                Typical household circuits use 1.5mm² (lighting), 2.5mm² (outlets), or 4mm² (high-demand circuits).
+              </p>
+            </div>
+            <div class="col-md-4 mb-3 mb-md-0">
+              <h6 class="text-primary"><i class="fas fa-industry"></i> Industrial</h6>
+              <p class="small mb-0">
+                Industrial applications often require 10mm², 16mm², 25mm² or larger depending on power demands.
+              </p>
+            </div>
+            <div class="col-md-4">
+              <h6 class="text-primary"><i class="fas fa-exclamation-triangle"></i> Safety</h6>
+              <p class="small mb-0">
+                Never use undersized wire. Always consult local electrical codes and have work done by qualified electricians.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WIRE REFERENCE TABLE SECTION -->
+  <div class="row mb-5">
+    <div class="col-12">
+      <h3 class="mb-3"><i class="fas fa-table"></i> Complete Wire Reference</h3>
+      <div class="card shadow-sm">
         <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Wire Size (mm²)</th>
-                        <th>Max Ampacity (A)</th>
-                        <th>Application</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for wire in wire_sizes %}
-                        <tr>
-                            <td><strong>{{ wire.wire_size_mm2 }}</strong></td>
-                            <td>
-                                <span class="badge badge-primary">{{ wire.max_ampacity }}A</span>
-                            </td>
-                            <td>{{ wire.description|default:"—" }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr class="table-light">
+                <th>Wire Size (mm²)</th>
+                <th>Max Ampacity (A)</th>
+                <th>Application</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for wire in wire_sizes %}
+                <tr>
+                  <td><strong>{{ wire.wire_size_mm2 }}</strong></td>
+                  <td>
+                    <span class="badge bg-primary">{{ wire.max_ampacity }}A</span>
+                  </td>
+                  <td>{{ wire.description|default:"—" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
+      </div>
     </div>
+  </div>
 </div>
 
 {% endblock %}
@@ -251,11 +283,11 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto-scroll to results if they exist
-    const resultsCard = document.querySelector('.card-header .fa-check-circle');
-    if (resultsCard) {
-        resultsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+  // Auto-scroll to results if they exist
+  const resultsCard = document.querySelector('.card-header .fa-check-circle');
+  if (resultsCard) {
+    resultsCard.closest('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 });
 </script>
 {% endblock %}
