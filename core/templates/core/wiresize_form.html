@@ -1,0 +1,128 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Wire Size - Infolectric{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>
+        {% if form.instance.pk %}
+            <i class="fas fa-edit"></i> Edit Wire Size
+        {% else %}
+            <i class="fas fa-plus"></i> Add New Wire Size
+        {% endif %}
+    </h1>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <form method="post" class="card-body">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <!-- WIRE SIZE FIELD -->
+                <div class="mb-3">
+                    <label for="{{ form.wire_size_mm2.id_for_label }}" class="form-label">
+                        {{ form.wire_size_mm2.label }}
+                        <span class="text-danger">*</span>
+                    </label>
+                    {{ form.wire_size_mm2 }}
+                    <small class="form-text text-muted">Enter the wire size in square millimeters (mm²)</small>
+                    {% if form.wire_size_mm2.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.wire_size_mm2.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- AMPACITY FIELD -->
+                <div class="mb-3">
+                    <label for="{{ form.max_ampacity.id_for_label }}" class="form-label">
+                        {{ form.max_ampacity.label }}
+                        <span class="text-danger">*</span>
+                    </label>
+                    {{ form.max_ampacity }}
+                    <small class="form-text text-muted">Maximum safe current in amperes</small>
+                    {% if form.max_ampacity.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.max_ampacity.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- DESCRIPTION FIELD -->
+                <div class="mb-3">
+                    <label for="{{ form.description.id_for_label }}" class="form-label">
+                        {{ form.description.label }}
+                    </label>
+                    {{ form.description }}
+                    <small class="form-text text-muted">Describe applications and use cases</small>
+                    {% if form.description.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.description.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- SUBMIT BUTTONS -->
+                <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        {% if form.instance.pk %}Update{% else %}Create{% endif %} Wire Size
+                    </button>
+                    <a href="{% url 'core:wiresize-list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- HELP SIDEBAR -->
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-question-circle"></i> Help</h5>
+            </div>
+            <div class="card-body">
+                <h6>Wire Size Information</h6>
+                <p style="font-size: 0.9rem;">
+                    Enter the following information:
+                </p>
+                <ul style="font-size: 0.9rem;">
+                    <li><strong>Wire Size:</strong> Cross-sectional area in mm²</li>
+                    <li><strong>Max Ampacity:</strong> Safe maximum current in amps</li>
+                    <li><strong>Description:</strong> Application and use cases</li>
+                </ul>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    All fields marked with <span class="text-danger">*</span> are required.
+                </p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle"></i> Common Values</h5>
+            </div>
+            <div class="card-body" style="font-size: 0.85rem;">
+                <p><strong>Residential:</strong> 1.5, 2.5, 4, 6mm²</p>
+                <p><strong>Industrial:</strong> 10, 16, 25mm²</p>
+                <p><strong>Heavy Duty:</strong> 35, 50, 70mm²</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

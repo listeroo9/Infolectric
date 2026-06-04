@@ -1,0 +1,112 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ wire_size.wire_size_mm2 }}mm² Wire - Infolectric{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ wire_size.wire_size_mm2 }}mm² Wire Specification</h1>
+    {% if user.is_authenticated %}
+        <div>
+            <a href="{% url 'core:wiresize-update' wire_size.pk %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Edit
+            </a>
+            <a href="{% url 'core:wiresize-delete' wire_size.pk %}" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Delete
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Specifications</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <h6 class="text-muted">Wire Size</h6>
+                    <p style="font-size: 2rem; font-weight: bold; color: #1e40af;">
+                        {{ wire_size.wire_size_mm2 }} mm²
+                    </p>
+                </div>
+
+                <div class="mb-4">
+                    <h6 class="text-muted">Maximum Ampacity</h6>
+                    <p style="font-size: 1.8rem; font-weight: bold; color: #16a34a;">
+                        {{ wire_size.max_ampacity }} Amps
+                    </p>
+                </div>
+
+                <div class="mb-4">
+                    <h6 class="text-muted">Description / Application</h6>
+                    <p style="line-height: 1.6;">
+                        {{ wire_size.description|default:"No description provided." }}
+                    </p>
+                </div>
+
+                <hr>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Created</h6>
+                        <p>{{ wire_size.created_at|date:"F d, Y" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Last Updated</h6>
+                        <p>{{ wire_size.updated_at|date:"F d, Y" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- INFORMATION CARD -->
+    <div class="col-lg-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-lightbulb"></i> Safety Considerations</h5>
+            </div>
+            <div class="card-body">
+                <p style="font-size: 0.9rem;">
+                    <strong>Do not exceed maximum ampacity:</strong> Using a wire smaller than recommended 
+                    for the current flow can cause overheating, melting of insulation, and fire hazards.
+                </p>
+                <p style="font-size: 0.9rem;">
+                    <strong>Temperature derating:</strong> In high-temperature environments, 
+                    the maximum safe ampacity may be reduced.
+                </p>
+                <p style="font-size: 0.9rem;">
+                    <strong>Voltage drop:</strong> Even if a wire can handle the current, it may still 
+                    drop too much voltage for proper operation.
+                </p>
+                <p style="font-size: 0.9rem;">
+                    <strong>Always follow local codes:</strong> Consult your local electrical 
+                    codes and regulations for specific requirements.
+                </p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-calculator"></i> Quick Calculator</h5>
+            </div>
+            <div class="card-body">
+                <p style="font-size: 0.9rem; margin-bottom: 1rem;">
+                    Need a wire for {{ wire_size.max_ampacity }} amps or less?
+                </p>
+                <a href="{% url 'core:calculator' %}" class="btn btn-success btn-sm btn-block" style="width: 100%;">
+                    <i class="fas fa-arrow-right"></i> Use Wire Calculator
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- NAVIGATION -->
+<div class="mt-4 mb-4">
+    <a href="{% url 'core:wiresize-list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Wire Sizes
+    </a>
+</div>
+{% endblock %}

@@ -1,0 +1,210 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Wire Calculator - Infolectric{% endblock %}
+
+{% block content %}
+<div class="hero-section" style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); padding: 3rem 0;">
+    <h1><i class="fas fa-calculator"></i> Wire Size Calculator</h1>
+    <p>Find the perfect wire size for your electrical application</p>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header" style="background-color: #16a34a;">
+                <h5 class="mb-0">Calculator</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <div class="mb-4">
+                        <label for="{{ form.required_current.id_for_label }}" class="form-label">
+                            <strong>{{ form.required_current.label }}</strong>
+                        </label>
+                        {{ form.required_current }}
+                        <small class="form-text text-muted d-block mt-2">
+                            Enter the current your circuit requires. Example: 10 for 10 amps, 15.5 for 15.5 amps
+                        </small>
+                        {% if form.required_current.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.required_current.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-success btn-lg w-100">
+                        <i class="fas fa-arrow-right"></i> Calculate Recommendations
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- INFO CARD -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle"></i> How It Works</h5>
+            </div>
+            <div class="card-body" style="font-size: 0.9rem;">
+                <ol>
+                    <li>Enter the required current (amperage) for your circuit</li>
+                    <li>Click "Calculate Recommendations"</li>
+                    <li>View all wire sizes that can safely handle that current</li>
+                    <li>Choose the most appropriate size for your application</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="col-lg-6">
+        {% if error_message %}
+            <div class="alert alert-danger" role="alert">
+                <i class="fas fa-exclamation-circle"></i> {{ error_message }}
+            </div>
+        {% endif %}
+
+        {% if recommendations %}
+            <div class="card">
+                <div class="card-header" style="background-color: #16a34a;">
+                    <h5 class="mb-0">
+                        <i class="fas fa-check-circle"></i> Recommended Wire Sizes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-4">
+                        For a required current of <strong>{{ recommendations.0|first }}</strong> amps, 
+                        the following wire sizes are suitable:
+                    </p>
+
+                    {% for wire in recommendations %}
+                        <div class="card mb-3" style="border-left: 4px solid #16a34a;">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6 class="text-muted">Wire Size</h6>
+                                        <p style="font-size: 1.5rem; font-weight: bold; color: #1e40af;">
+                                            {{ wire.wire_size_mm2 }} mm²
+                                        </p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="text-muted">Max Ampacity</h6>
+                                        <p style="font-size: 1.5rem; font-weight: bold; color: #16a34a;">
+                                            {{ wire.max_ampacity }}A
+                                        </p>
+                                    </div>
+                                </div>
+                                {% if wire.description %}
+                                    <hr style="margin: 0.75rem 0;">
+                                    <p style="font-size: 0.85rem; margin-bottom: 0;">
+                                        <strong>Application:</strong> {{ wire.description }}
+                                    </p>
+                                {% endif %}
+                                <div class="mt-2">
+                                    <a href="{% url 'core:wiresize-detail' wire.id %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-details"></i> View Details
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+
+                    <div class="alert alert-info mt-4">
+                        <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Choose the wire size that best fits your 
+                        application. Larger sizes provide more safety margin but cost more. Consider temperature, 
+                        installation method, and local electrical codes.
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- GUIDELINES -->
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-graduation-cap"></i> Wire Selection Guidelines</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <h6 style="color: #1e40af;"><i class="fas fa-home"></i> Residential</h6>
+                        <p style="font-size: 0.9rem;">
+                            Typical household circuits use 1.5mm² (lighting), 2.5mm² (outlets), 
+                            or 4mm² (high-demand circuits).
+                        </p>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <h6 style="color: #1e40af;"><i class="fas fa-industry"></i> Industrial</h6>
+                        <p style="font-size: 0.9rem;">
+                            Industrial applications often require 10mm², 16mm², 25mm² or larger 
+                            depending on power demands.
+                        </p>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <h6 style="color: #1e40af;"><i class="fas fa-exclamation-triangle"></i> Safety</h6>
+                        <p style="font-size: 0.9rem;">
+                            Never use undersized wire. Always consult local electrical codes and 
+                            have work done by qualified electricians.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ALL WIRE SIZES TABLE -->
+<div class="row mt-5">
+    <div class="col-12">
+        <h3 class="mb-3"><i class="fas fa-table"></i> Complete Wire Reference</h3>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Wire Size (mm²)</th>
+                        <th>Max Ampacity (A)</th>
+                        <th>Application</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for wire in wire_sizes %}
+                        <tr>
+                            <td><strong>{{ wire.wire_size_mm2 }}</strong></td>
+                            <td>
+                                <span class="badge badge-primary">{{ wire.max_ampacity }}A</span>
+                            </td>
+                            <td>{{ wire.description|default:"—" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-scroll to results if they exist
+    const resultsCard = document.querySelector('.card-header .fa-check-circle');
+    if (resultsCard) {
+        resultsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+});
+</script>
+{% endblock %}

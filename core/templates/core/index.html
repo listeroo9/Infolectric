@@ -1,0 +1,136 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Home - Infolectric{% endblock %}
+
+{% block content %}
+<!-- HERO SECTION -->
+<div class="hero-section">
+    <h1>Welcome to Infolectric</h1>
+    <p>Your Complete Electrical Information and Calculation Platform</p>
+    <p style="font-size: 0.95rem; opacity: 0.8;">Educational resources for students, electricians, and electronics enthusiasts</p>
+</div>
+
+<!-- STATS -->
+<div class="row mb-5">
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="number">{{ component_count }}</div>
+            <div class="label">Components</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="number">{{ category_count }}</div>
+            <div class="label">Categories</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="number">{{ wiresize_count }}</div>
+            <div class="label">Wire Sizes</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="number">∞</div>
+            <div class="label">Learning Value</div>
+        </div>
+    </div>
+</div>
+
+<!-- FEATURES -->
+<div class="row mb-5">
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-microchip" style="font-size: 3rem; color: #1e40af; margin-bottom: 1rem;"></i>
+                <h5 class="card-title">Component Library</h5>
+                <p class="card-text">Explore our comprehensive database of electrical components with detailed specifications and descriptions.</p>
+                <a href="{% url 'core:component-list' %}" class="btn btn-primary">Browse Components</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-calculator" style="font-size: 3rem; color: #16a34a; margin-bottom: 1rem;"></i>
+                <h5 class="card-title">Wire Calculator</h5>
+                <p class="card-text">Get instant wire size recommendations based on your required current (amperage).</p>
+                <a href="{% url 'core:calculator' %}" class="btn btn-success">Calculate Now</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-cable" style="font-size: 3rem; color: #dc2626; margin-bottom: 1rem;"></i>
+                <h5 class="card-title">Wire Reference</h5>
+                <p class="card-text">Access comprehensive wire size charts with ampacity ratings and applications.</p>
+                <a href="{% url 'core:wiresize-list' %}" class="btn btn-danger">View Wire Sizes</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- RECENT COMPONENTS -->
+<h2 class="mb-4" style="color: #1e40af;">Recently Added Components</h2>
+<div class="row">
+    {% for component in recent_components %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card">
+                {% if component.image %}
+                    <img src="{{ component.image.url }}" class="card-img-top" alt="{{ component.name }}" style="height: 200px; object-fit: cover;">
+                {% else %}
+                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                        <i class="fas fa-microchip" style="font-size: 3rem; color: #ccc;"></i>
+                    </div>
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ component.name }}</h5>
+                    <p class="card-text text-truncate">{{ component.description }}</p>
+                    <div class="mb-3">
+                        <span class="badge badge-primary">{{ component.category }}</span>
+                    </div>
+                    <a href="{% url 'core:component-detail' component.pk %}" class="btn btn-sm btn-primary">View Details</a>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> No components added yet. 
+                {% if user.is_authenticated %}
+                    <a href="{% url 'core:component-create' %}">Create the first one!</a>
+                {% endif %}
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- API DOCUMENTATION SECTION -->
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card" style="background-color: #f0f4ff; border: 2px solid #1e40af;">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-code"></i> API Documentation
+                </h5>
+                <p class="card-text">
+                    Infolectric provides a RESTful API for programmatic access to all data. 
+                    Access components, categories, and wire sizes in JSON format.
+                </p>
+                <p style="font-size: 0.9rem; color: #555;">
+                    <strong>Available Endpoints:</strong><br>
+                    • <code>GET /api/components/</code> - List all components<br>
+                    • <code>GET /api/categories/</code> - List all categories<br>
+                    • <code>GET /api/wire-sizes/</code> - List all wire sizes<br>
+                    • <code>POST /api/wire-recommendation/recommend/</code> - Get wire recommendations
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

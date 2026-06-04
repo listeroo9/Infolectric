@@ -1,0 +1,36 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Delete Component - Infolectric{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <div class="card border-danger">
+            <div class="card-header bg-danger">
+                <h5 class="mb-0 text-white">
+                    <i class="fas fa-exclamation-triangle"></i> Delete Component
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-4">
+                    Are you sure you want to delete the following component? This action cannot be undone.
+                </p>
+                
+                <div class="alert alert-warning">
+                    <strong>Component:</strong> {{ component.name }}
+                </div>
+
+                <form method="post" class="d-grid gap-2 d-md-flex">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Yes, Delete Component
+                    </button>
+                    <a href="{% url 'core:component-detail' component.pk %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Cancel
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ component.name }} - Infolectric{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ component.name }}</h1>
+        <p class="text-muted mb-0">
+            <a href="{% url 'core:category-detail' component.category.pk %}">{{ component.category }}</a>
+        </p>
+    </div>
+    {% if user.is_authenticated %}
+        <div>
+            <a href="{% url 'core:component-update' component.pk %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Edit
+            </a>
+            <a href="{% url 'core:component-delete' component.pk %}" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Delete
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<div class="row">
+    <!-- IMAGE -->
+    <div class="col-md-4 mb-4">
+        {% if component.image %}
+            <img src="{{ component.image.url }}" alt="{{ component.name }}" class="img-fluid rounded" style="border: 2px solid #dee2e6;">
+        {% else %}
+            <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 300px; border: 2px dashed #dee2e6;">
+                <div class="text-center">
+                    <i class="fas fa-image" style="font-size: 3rem; color: #ccc;"></i>
+                    <p class="text-muted mt-2">No image available</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- DETAILS -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Component Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6 class="text-muted">Category</h6>
+                    <p>
+                        <span class="badge badge-primary" style="padding: 0.5rem 1rem; font-size: 0.95rem;">
+                            {{ component.category }}
+                        </span>
+                    </p>
+                </div>
+
+                <div class="mb-3">
+                    <h6 class="text-muted">Description</h6>
+                    <p style="line-height: 1.6;">{{ component.description }}</p>
+                </div>
+
+                <hr>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Created</h6>
+                        <p>{{ component.date_created|date:"F d, Y \a\t g:i A" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Last Updated</h6>
+                        <p>{{ component.updated_at|date:"F d, Y \a\t g:i A" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RELATED COMPONENTS -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Other Components in {{ component.category }}</h5>
+            </div>
+            <div class="card-body">
+                {% with related=component.category.components.exclude %}
+                    {% if related %}
+                        <div class="list-group">
+                            {% for comp in related %}
+                                <a href="{% url 'core:component-detail' comp.pk %}" class="list-group-item list-group-item-action">
+                                    {{ comp.name }}
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No other components in this category.</p>
+                    {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- NAVIGATION -->
+<div class="mt-4 mb-4">
+    <a href="{% url 'core:component-list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Components
+    </a>
+</div>
+{% endblock %}

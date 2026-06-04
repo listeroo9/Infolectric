@@ -1,0 +1,132 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Component - Infolectric{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>
+        {% if form.instance.pk %}
+            <i class="fas fa-edit"></i> Edit Component
+        {% else %}
+            <i class="fas fa-plus"></i> Add New Component
+        {% endif %}
+    </h1>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <form method="post" enctype="multipart/form-data" class="card-body">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <!-- NAME FIELD -->
+                <div class="mb-3">
+                    <label for="{{ form.name.id_for_label }}" class="form-label">
+                        {{ form.name.label }}
+                        <span class="text-danger">*</span>
+                    </label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.name.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- CATEGORY FIELD -->
+                <div class="mb-3">
+                    <label for="{{ form.category.id_for_label }}" class="form-label">
+                        {{ form.category.label }}
+                        <span class="text-danger">*</span>
+                    </label>
+                    {{ form.category }}
+                    {% if form.category.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.category.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- DESCRIPTION FIELD -->
+                <div class="mb-3">
+                    <label for="{{ form.description.id_for_label }}" class="form-label">
+                        {{ form.description.label }}
+                        <span class="text-danger">*</span>
+                    </label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.description.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- IMAGE FIELD -->
+                <div class="mb-3">
+                    <label for="{{ form.image.id_for_label }}" class="form-label">
+                        {{ form.image.label }}
+                    </label>
+                    {{ form.image }}
+                    <small class="form-text text-muted">Maximum file size: 5MB. Supported formats: JPG, PNG, GIF</small>
+                    {% if form.image.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.image.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- SUBMIT BUTTONS -->
+                <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> 
+                        {% if form.instance.pk %}Update{% else %}Create{% endif %} Component
+                    </button>
+                    <a href="{% url 'core:component-list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- HELP SIDEBAR -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-question-circle"></i> Help</h5>
+            </div>
+            <div class="card-body">
+                <h6>Component Information</h6>
+                <p style="font-size: 0.9rem;">
+                    Add detailed information about the electrical component, including:
+                </p>
+                <ul style="font-size: 0.9rem;">
+                    <li>Component name and specifications</li>
+                    <li>Category classification</li>
+                    <li>Technical description and uses</li>
+                    <li>Optional image/photo</li>
+                </ul>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">
+                    All fields marked with <span class="text-danger">*</span> are required.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

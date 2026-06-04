@@ -1,0 +1,131 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Wire Sizes - Infolectric{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-cable"></i> Wire Size Reference</h1>
+    {% if user.is_authenticated %}
+        <a href="{% url 'core:wiresize-create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Wire Size
+        </a>
+    {% endif %}
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <p class="mb-0">
+            <i class="fas fa-info-circle"></i> 
+            <strong>Wire Size Reference:</strong> All ampacity ratings are based on standard safe operating limits. 
+            Always consult local electrical codes and regulations for your specific application.
+        </p>
+    </div>
+</div>
+
+{% if wire_sizes %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Wire Size (mm²)</th>
+                    <th>Max Ampacity (A)</th>
+                    <th>Description / Application</th>
+                    <th style="width: 150px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for wire in wire_sizes %}
+                    <tr>
+                        <td>
+                            <strong>{{ wire.wire_size_mm2 }}</strong>
+                        </td>
+                        <td>
+                            <span class="badge badge-primary" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">
+                                {{ wire.max_ampacity }}A
+                            </span>
+                        </td>
+                        <td>
+                            {{ wire.description|default:"—" }}
+                        </td>
+                        <td>
+                            <a href="{% url 'core:wiresize-detail' wire.pk %}" class="btn btn-sm btn-primary" title="View">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            {% if user.is_authenticated %}
+                                <a href="{% url 'core:wiresize-update' wire.pk %}" class="btn btn-sm btn-warning" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'core:wiresize-delete' wire.pk %}" class="btn btn-sm btn-danger" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- PAGINATION -->
+    {% if is_paginated %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1">First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                    </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif %}
+{% else %}
+    <div class="alert alert-info text-center">
+        <i class="fas fa-info-circle"></i> No wire sizes found.
+    </div>
+{% endif %}
+
+<!-- HELPFUL INFORMATION -->
+<div class="card mt-5">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-graduation-cap"></i> About Wire Sizes</h5>
+    </div>
+    <div class="card-body">
+        <p>
+            <strong>Wire size</strong> is measured in square millimeters (mm²) and indicates the cross-sectional area of the conductor. 
+            Larger wire sizes can safely carry more electrical current.
+        </p>
+        <p>
+            <strong>Ampacity</strong> is the maximum amount of electric current a wire can continuously carry 
+            at a specified temperature rise without damaging the insulation or conductor.
+        </p>
+        <p>
+            Proper wire sizing is critical for safety. Undersized wires can overheat and cause fires, 
+            while oversized wires waste materials and money.
+        </p>
+    </div>
+</div>
+{% endblock %}
