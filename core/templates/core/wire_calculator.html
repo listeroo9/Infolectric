@@ -537,64 +537,69 @@
                         {% if explorer_results.safe_combinations %}
                           <div class="row g-3">
                             {% for combo in explorer_results.safe_combinations %}
-                              <div class="col-12 col-lg-6">
-                                <div class="card h-100 border-start border-primary border-4">
-                                  <div class="card-body">
-                                    <h6 class="mb-2">{{ combo.level_label }}</h6>
-                                    <p class="text-muted small mb-3">{{ combo.level_description }}</p>
-                                    <div class="mb-3">
-                                      <h6 class="mb-2">Electrical Breakdown</h6>
-                                      <p class="mb-1"><strong>Total Devices:</strong> {{ combo.device_count }}</p>
-                                      <p class="mb-1"><strong>Total Power:</strong> {{ combo.total_power }} W</p>
-                                      <p class="mb-1"><strong>Total Current:</strong> {{ combo.total_current }} A</p>
-                                      <p class="mb-0"><strong>Average Voltage:</strong> {{ combo.average_voltage }} V</p>
-                                    </div>
-                                    <div class="mb-3">
-                                      <h6 class="mb-2">Device Contributions</h6>
-                                      {% for appliance in combo.appliances %}
-                                        <div class="border rounded p-2 mb-2">
-                                          <div class="d-flex justify-content-between align-items-start">
-                                            <div>
-                                              <strong>{{ appliance.name }}</strong>
-                                              <div class="text-muted small mt-1">
-                                                {{ appliance.power_watts }} W • {{ appliance.voltage }} V • {{ appliance.current_amps }} A
-                                              </div>
-                                            </div>
-                                            <span class="badge bg-secondary">{{ appliance.contribution_percent }}%</span>
-                                          </div>
-                                          <div class="progress mt-2" style="height: 8px;">
-                                            {% if appliance.contribution_percent <= 20 %}
-                                              <div class="progress-bar bg-info w-25" role="progressbar" aria-valuenow="{{ appliance.contribution_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
-                                            {% elif appliance.contribution_percent <= 40 %}
-                                              <div class="progress-bar bg-info w-50" role="progressbar" aria-valuenow="{{ appliance.contribution_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
-                                            {% elif appliance.contribution_percent <= 60 %}
-                                              <div class="progress-bar bg-info w-75" role="progressbar" aria-valuenow="{{ appliance.contribution_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
-                                            {% else %}
-                                              <div class="progress-bar bg-info w-100" role="progressbar" aria-valuenow="{{ appliance.contribution_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
-                                            {% endif %}
-                                          </div>
+                                <div class="col-12 col-lg-6">
+                                  <div class="card h-100 border-start border-primary border-4">
+                                    <div class="card-body">
+                                      <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div>
+                                          <h6 class="mb-1">{{ combo.level_label }}</h6>
+                                          <p class="text-muted small mb-0">{{ combo.level_description }}</p>
                                         </div>
-                                      {% endfor %}
+                                        <span class="badge {% if combo.utilization <= 40 %}bg-success{% elif combo.utilization <= 60 %}bg-warning text-dark{% elif combo.utilization <= 80 %}bg-warning{% else %}bg-danger{% endif %}">
+                                          {% if combo.utilization <= 40 %}Safe{% elif combo.utilization <= 60 %}Moderate{% elif combo.utilization <= 80 %}High Load{% else %}Near Limit{% endif %}
+                                        </span>
+                                      </div>
+
+                                      <div class="row gy-2 mb-3 small text-dark">
+                                        <div class="col-6"><strong>Total Devices</strong><br>{{ combo.device_count }}</div>
+                                        <div class="col-6"><strong>Total Power</strong><br>{{ combo.total_power }} W</div>
+                                        <div class="col-6"><strong>Total Current</strong><br>{{ combo.total_current }} A</div>
+                                        <div class="col-6"><strong>Utilization</strong><br>{{ combo.utilization }}%</div>
+                                      </div>
+
+                                      <button class="btn btn-sm btn-outline-primary combo-toggle-details" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-level-{{ forloop.counter }}" aria-expanded="false" aria-controls="collapse-level-{{ forloop.counter }}">
+                                        View Details
+                                      </button>
+
+                                      <div class="collapse mt-3 combo-collapse" id="collapse-level-{{ forloop.counter }}">
+                                        <div class="border-top pt-3">
+                                          <div class="row gy-2 mb-3 small text-dark">
+                                            <div class="col-6"><strong>Average Voltage</strong><br>{{ combo.average_voltage }} V</div>
+                                            <div class="col-6"><strong>Usable Limit</strong><br>{{ combo.usable_limit }} A</div>
+                                          </div>
+
+                                          <p class="small text-muted mb-2">System voltage assumed: 220V per device.</p>
+                                          <div class="table-responsive">
+                                            <table class="table table-sm mb-2">
+                                              <thead class="table-light">
+                                                <tr>
+                                                  <th scope="col">Device Name</th>
+                                                  <th scope="col">Power (W)</th>
+                                                  <th scope="col">Voltage (V)</th>
+                                                  <th scope="col">Current (A)</th>
+                                                  <th scope="col">Contribution</th>
+                                                </tr>
+                                              </thead>
+                                              <tbody>
+                                                {% for appliance in combo.appliances %}
+                                                  <tr>
+                                                    <td>{{ appliance.name }}</td>
+                                                    <td>{{ appliance.power_watts }}</td>
+                                                    <td>{{ appliance.voltage }}</td>
+                                                    <td>{{ appliance.current_amps }}</td>
+                                                    <td>{{ appliance.contribution_percent }}%</td>
+                                                  </tr>
+                                                {% endfor %}
+                                              </tbody>
+                                            </table>
+                                          </div>
+
+                                          <p class="text-muted small mb-0"><strong>Electrical Relationship:</strong> Power (W) = Voltage (V) × Current (A)</p>
+                                        </div>
+                                      </div>
                                     </div>
-                                    <p class="mb-1"><strong>Usable Limit:</strong> {{ combo.usable_limit }} A</p>
-                                    <div class="mb-2">
-                                      <strong>Utilization:</strong> {{ combo.utilization }}%
-                                    </div>
-                                    <div class="progress" style="height: 16px;">
-                                      {% if combo.utilization <= 20 %}
-                                        <div class="progress-bar bg-success w-25" role="progressbar" aria-valuenow="{{ combo.utilization }}" aria-valuemin="0" aria-valuemax="100"></div>
-                                      {% elif combo.utilization <= 40 %}
-                                        <div class="progress-bar bg-success w-50" role="progressbar" aria-valuenow="{{ combo.utilization }}" aria-valuemin="0" aria-valuemax="100"></div>
-                                      {% elif combo.utilization <= 60 %}
-                                        <div class="progress-bar bg-warning w-75" role="progressbar" aria-valuenow="{{ combo.utilization }}" aria-valuemin="0" aria-valuemax="100"></div>
-                                      {% else %}
-                                        <div class="progress-bar bg-danger w-100" role="progressbar" aria-valuenow="{{ combo.utilization }}" aria-valuemin="0" aria-valuemax="100"></div>
-                                      {% endif %}
-                                    </div>
-                                    <p class="text-muted small mt-3 mb-0"><strong>Electrical Relationship:</strong> Power (W) = Voltage (V) × Current (A)</p>
                                   </div>
                                 </div>
-                              </div>
                             {% endfor %}
                           </div>
                         {% else %}
@@ -611,6 +616,25 @@
       </div>
     </div>
   </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.combo-collapse').forEach(function (collapse) {
+        collapse.addEventListener('shown.bs.collapse', function () {
+          var button = document.querySelector('[data-bs-target="#' + collapse.id + '"]');
+          if (button) {
+            button.textContent = 'Hide Details';
+          }
+        });
+        collapse.addEventListener('hidden.bs.collapse', function () {
+          var button = document.querySelector('[data-bs-target="#' + collapse.id + '"]');
+          if (button) {
+            button.textContent = 'View Details';
+          }
+        });
+      });
+    });
+  </script>
 
   <!-- HOW IT WORKS SECTION -->
 
