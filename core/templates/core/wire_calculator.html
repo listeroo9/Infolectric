@@ -306,6 +306,26 @@
                       {% endif %}
                     </div>
 
+                    <div class="mb-3">
+                      <label for="{{ explorer_form.usage_type.id_for_label }}" class="form-label">
+                        <strong>{{ explorer_form.usage_type.label }}</strong>
+                        <span class="text-secondary" data-bs-toggle="tooltip" title="Choose the load profile to derate the wire safely.">
+                          <i class="fas fa-info-circle"></i>
+                        </span>
+                      </label>
+                      {{ explorer_form.usage_type }}
+                      <small class="form-text text-muted d-block mt-2">
+                        Short duration uses the full ampacity, while continuous loads are derated.
+                      </small>
+                      {% if explorer_form.usage_type.errors %}
+                        <div class="invalid-feedback d-block">
+                          {% for error in explorer_form.usage_type.errors %}
+                            {{ error }}
+                          {% endfor %}
+                        </div>
+                      {% endif %}
+                    </div>
+
                     <div class="mb-4">
                       <label for="{{ explorer_form.wire_length.id_for_label }}" class="form-label">
                         <strong>{{ explorer_form.wire_length.label }}</strong>
@@ -349,6 +369,22 @@
                             <strong class="fs-5">{{ explorer_results.capability.wire_size_mm2 }} mm²</strong>
                           </div>
                           <div class="col-md-3 mb-3 mb-md-0">
+                            <small class="text-muted d-block">Usage Profile</small>
+                            <span class="badge bg-{{ explorer_results.capability.usage_badge }} fs-6">
+                              {{ explorer_results.capability.usage_label }}
+                            </span>
+                          </div>
+                          <div class="col-md-3 mb-3 mb-md-0">
+                            <small class="text-muted d-block">Safety Factor</small>
+                            <strong class="fs-5">{{ explorer_results.capability.safety_factor }}</strong>
+                          </div>
+                          <div class="col-md-3">
+                            <small class="text-muted d-block">Theoretical Maximum</small>
+                            <strong class="fs-5">{{ explorer_results.capability.max_power_theoretical }} W</strong>
+                          </div>
+                        </div>
+                        <div class="row mt-3">
+                          <div class="col-md-3 mb-3 mb-md-0">
                             <small class="text-muted d-block">Max Ampacity</small>
                             <strong class="fs-5">{{ explorer_results.capability.max_ampacity }} A</strong>
                           </div>
@@ -356,9 +392,13 @@
                             <small class="text-muted d-block">Source Voltage</small>
                             <strong class="fs-5">220 V</strong>
                           </div>
+                          <div class="col-md-3 mb-3 mb-md-0">
+                            <small class="text-muted d-block">Recommended Maximum</small>
+                            <strong class="fs-5">{{ explorer_results.capability.recommended_max_power }} W</strong>
+                          </div>
                           <div class="col-md-3">
-                            <small class="text-muted d-block">Maximum Power</small>
-                            <strong class="fs-5">{{ explorer_results.capability.max_power }} W</strong>
+                            <small class="text-muted d-block">Usable Current</small>
+                            <strong class="fs-5">{{ explorer_results.capability.usable_current }} A</strong>
                           </div>
                         </div>
                       </div>
@@ -408,9 +448,41 @@
 
                 <div class="row mb-4">
                   <div class="col-12">
-                    <div class="alert alert-secondary">
-                      <p class="mb-1"><strong>Source Voltage</strong> is the voltage from the power source.</p>
-                      <p class="mb-0"><strong>Load Voltage</strong> is the voltage actually received by the appliance after losses in the wire.</p>
+                    <div class="card border-info shadow-sm">
+                      <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">Usage Profile Guidance</h5>
+                      </div>
+                      <div class="card-body">
+                        <div class="row g-3">
+                          <div class="col-12 col-md-4">
+                            <h6 class="text-primary">Short Duration</h6>
+                            <ul class="list-unstyled small mb-0">
+                              <li>Typically less than 30 minutes at a time</li>
+                              <li>Examples: kettle, toaster, blender, power tools</li>
+                              <li>Can use a higher percentage of wire ampacity because the wire has time to cool</li>
+                            </ul>
+                          </div>
+                          <div class="col-12 col-md-4">
+                            <h6 class="text-warning">Normal Household Use</h6>
+                            <ul class="list-unstyled small mb-0">
+                              <li>Typically 30 minutes to 3 hours</li>
+                              <li>Examples: TV, desktop computer, washing machine, microwave</li>
+                              <li>Balanced safety margin suitable for most residential loads</li>
+                            </ul>
+                          </div>
+                          <div class="col-12 col-md-4">
+                            <h6 class="text-danger">Continuous Load</h6>
+                            <ul class="list-unstyled small mb-0">
+                              <li>Typically more than 3 hours continuously</li>
+                              <li>Examples: air conditioners, servers, water pumps, lighting circuits, refrigerators</li>
+                              <li>Requires derating because wires heat up over long periods</li>
+                            </ul>
+                          </div>
+                        </div>
+                        <p class="small text-muted mt-3 mb-0">
+                          These time ranges are simplified guidance for homeowners and students. Actual electrical design should follow local electrical codes and manufacturer specifications.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -468,15 +540,58 @@
                               <div class="col-12 col-lg-6">
                                 <div class="card h-100 border-start border-primary border-4">
                                   <div class="card-body">
-                                    <h6 class="mb-2">Combination #{{ forloop.counter }}</h6>
-                                    <ul class="mb-3 ps-3">
+                                    <h6 class="mb-2">{{ combo.level_label }}</h6>
+                                    <p class="text-muted small mb-3">{{ combo.level_description }}</p>
+                                    <div class="mb-3">
+                                      <h6 class="mb-2">Electrical Breakdown</h6>
+                                      <p class="mb-1"><strong>Total Devices:</strong> {{ combo.device_count }}</p>
+                                      <p class="mb-1"><strong>Total Power:</strong> {{ combo.total_power }} W</p>
+                                      <p class="mb-1"><strong>Total Current:</strong> {{ combo.total_current }} A</p>
+                                      <p class="mb-0"><strong>Average Voltage:</strong> {{ combo.average_voltage }} V</p>
+                                    </div>
+                                    <div class="mb-3">
+                                      <h6 class="mb-2">Device Contributions</h6>
                                       {% for appliance in combo.appliances %}
-                                        <li>{{ appliance }}</li>
+                                        <div class="border rounded p-2 mb-2">
+                                          <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                              <strong>{{ appliance.name }}</strong>
+                                              <div class="text-muted small mt-1">
+                                                {{ appliance.power_watts }} W • {{ appliance.voltage }} V • {{ appliance.current_amps }} A
+                                              </div>
+                                            </div>
+                                            <span class="badge bg-secondary">{{ appliance.contribution_percent }}%</span>
+                                          </div>
+                                          <div class="progress mt-2" style="height: 8px;">
+                                            {% if appliance.contribution_percent <= 20 %}
+                                              <div class="progress-bar bg-info w-25" role="progressbar" aria-valuenow="{{ appliance.contribution_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                            {% elif appliance.contribution_percent <= 40 %}
+                                              <div class="progress-bar bg-info w-50" role="progressbar" aria-valuenow="{{ appliance.contribution_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                            {% elif appliance.contribution_percent <= 60 %}
+                                              <div class="progress-bar bg-info w-75" role="progressbar" aria-valuenow="{{ appliance.contribution_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                            {% else %}
+                                              <div class="progress-bar bg-info w-100" role="progressbar" aria-valuenow="{{ appliance.contribution_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                            {% endif %}
+                                          </div>
+                                        </div>
                                       {% endfor %}
-                                    </ul>
-                                    <p class="mb-1"><strong>Total Current:</strong> {{ combo.total_current }} A</p>
-                                    <p class="mb-1"><strong>Wire Limit:</strong> {{ combo.wire_limit }} A</p>
-                                    <p class="mb-0"><strong>Utilization:</strong> {{ combo.utilization }}%</p>
+                                    </div>
+                                    <p class="mb-1"><strong>Usable Limit:</strong> {{ combo.usable_limit }} A</p>
+                                    <div class="mb-2">
+                                      <strong>Utilization:</strong> {{ combo.utilization }}%
+                                    </div>
+                                    <div class="progress" style="height: 16px;">
+                                      {% if combo.utilization <= 20 %}
+                                        <div class="progress-bar bg-success w-25" role="progressbar" aria-valuenow="{{ combo.utilization }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                      {% elif combo.utilization <= 40 %}
+                                        <div class="progress-bar bg-success w-50" role="progressbar" aria-valuenow="{{ combo.utilization }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                      {% elif combo.utilization <= 60 %}
+                                        <div class="progress-bar bg-warning w-75" role="progressbar" aria-valuenow="{{ combo.utilization }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                      {% else %}
+                                        <div class="progress-bar bg-danger w-100" role="progressbar" aria-valuenow="{{ combo.utilization }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                      {% endif %}
+                                    </div>
+                                    <p class="text-muted small mt-3 mb-0"><strong>Electrical Relationship:</strong> Power (W) = Voltage (V) × Current (A)</p>
                                   </div>
                                 </div>
                               </div>

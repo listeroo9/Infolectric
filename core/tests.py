@@ -3,10 +3,13 @@ Tests for the Infolectric application.
 Run with: python manage.py test
 """
 
+from decimal import Decimal
+
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
-from core.models import Component, Category, WireSize
+from core.models import ApplianceLoad, Component, Category, WireSize
+from core import services
 
 
 class CategoryModelTest(TestCase):
@@ -71,6 +74,47 @@ class WireSizeModelTest(TestCase):
         """Test wire size string representation."""
         expected = "2.50mm² (20A)"
         self.assertEqual(str(self.wire_size), expected)
+
+
+class UsageProfileServiceTest(TestCase):
+    """Test usage profile calculations for wire exploration."""
+
+    def test_calculate_usable_current_for_continuous_load(self):
+        usable_current = services.calculate_usable_current(
+            Decimal('6'),
+            services.USAGE_TYPE_CONTINUOUS_LOAD
+        )
+        self.assertEqual(usable_current, Decimal('4.8'))
+
+    def test_wire_capability_contains_usage_profile(self):
+        wire_size = WireSize.objects.create(wire_size_mm2=1.5, max_ampacity=6)
+        capability = services.get_wire_capability(
+            wire_size=wire_size,
+            usage_type=services.USAGE_TYPE_CONTINUOUS_LOAD
+        )
+        self.assertEqual(capability['usage_label'], 'Continuous Load')
+        self.assertEqual(capability['usable_current'], Decimal('4.80'))
+        self.assertEqual(capability['recommended_max_power'], Decimal('1056.00'))
+
+    def test_generate_safe_combinations_returns_utilization_levels(self):
+        wire_size = WireSize.objects.create(wire_size_mm2=2.5, max_ampacity=20)
+        category = Category.objects.create(name='Household')
+        ApplianceLoad.objects.create(name='LED Lamp', power_watts=20, voltage=220, category=category)
+        ApplianceLoad.objects.create(name='Desk Fan', power_watts=50, voltage=220, category=category)
+        ApplianceLoad.objects.create(name='Space Heater', power_watts=1200, voltage=220, category=category)
+
+        combos = services.generate_safe_combinations(wire_size)
+        self.assertTrue(any(combo['level'] == 1 for combo in combos))
+        self.assertTrue(any(combo['level'] >= 1 for combo in combos))
+        self.assertTrue(all(combo['total_current'] <= Decimal('18.00') for combo in combos))
+        self.assertTrue(all('level_label' in combo for combo in combos))
+        self.assertTrue(all('device_count' in combo for combo in combos))
+        self.assertTrue(all('average_voltage' in combo for combo in combos))
+        self.assertTrue(all('appliances' in combo for combo in combos))
+        for combo in combos:
+            self.assertTrue(all('current_amps' in appliance for appliance in combo['appliances']))
+            self.assertTrue(all('contribution_percent' in appliance for appliance in combo['appliances']))
+            self.assertEqual(combo['appliances'], sorted(combo['appliances'], key=lambda item: item['current_amps'], reverse=True))
 
 
 class ComponentViewTest(TestCase):

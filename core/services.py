@@ -52,6 +52,105 @@ SAFETY_FACTOR = Decimal('1.25')
 COPPER_RESISTIVITY = Decimal('0.0000000172')  # Ohm meter for copper
 ASSUMED_VOLTAGE = Decimal('220')
 
+USAGE_TYPE_SHORT_DURATION = 'short_duration'
+USAGE_TYPE_NORMAL_HOUSEHOLD = 'normal_household'
+USAGE_TYPE_CONTINUOUS_LOAD = 'continuous_load'
+
+USAGE_TYPE_CHOICES = [
+    (USAGE_TYPE_SHORT_DURATION, 'Short Duration'),
+    (USAGE_TYPE_NORMAL_HOUSEHOLD, 'Normal Household Use'),
+    (USAGE_TYPE_CONTINUOUS_LOAD, 'Continuous Load'),
+]
+
+USAGE_TYPE_FACTORS = {
+    USAGE_TYPE_SHORT_DURATION: Decimal('1.00'),
+    USAGE_TYPE_NORMAL_HOUSEHOLD: Decimal('0.90'),
+    USAGE_TYPE_CONTINUOUS_LOAD: Decimal('0.80'),
+}
+
+USAGE_TYPE_BADGES = {
+    USAGE_TYPE_SHORT_DURATION: 'primary',
+    USAGE_TYPE_NORMAL_HOUSEHOLD: 'warning',
+    USAGE_TYPE_CONTINUOUS_LOAD: 'danger',
+}
+
+USAGE_TYPE_LABELS = {
+    USAGE_TYPE_SHORT_DURATION: 'Short Duration',
+    USAGE_TYPE_NORMAL_HOUSEHOLD: 'Normal Household Use',
+    USAGE_TYPE_CONTINUOUS_LOAD: 'Continuous Load',
+}
+
+SAFE_COMBINATION_LEVELS = [
+    {
+        'level': 1,
+        'label': 'Level 1 – Light Load',
+        'min': Decimal('0'),
+        'max': Decimal('20'),
+        'description': 'Very light devices such as chargers and LED lighting. Keep load under 20% of usable capacity.',
+    },
+    {
+        'level': 2,
+        'label': 'Level 2 – Moderate Convenience',
+        'min': Decimal('20'),
+        'max': Decimal('40'),
+        'description': 'Everyday household items used for short periods, such as small kitchen gadgets and fans.',
+    },
+    {
+        'level': 3,
+        'label': 'Level 3 – Typical Daily Use',
+        'min': Decimal('40'),
+        'max': Decimal('60'),
+        'description': 'Normal household use with a mix of lighting and small appliances over a few hours.',
+    },
+    {
+        'level': 4,
+        'label': 'Level 4 – Heavy Household Load',
+        'min': Decimal('60'),
+        'max': Decimal('80'),
+        'description': 'Stronger household equipment used together like space heaters or large kitchen appliances.',
+    },
+    {
+        'level': 5,
+        'label': 'Level 5 – Full Capacity',
+        'min': Decimal('80'),
+        'max': Decimal('100'),
+        'description': 'Very high load conditions, close to the wire’s usable limit. Use only when necessary.',
+    },
+]
+
+
+def get_safety_factor(usage_type: str = USAGE_TYPE_NORMAL_HOUSEHOLD) -> Decimal:
+    """Return the safety factor for a usage profile."""
+    return USAGE_TYPE_FACTORS.get(usage_type, USAGE_TYPE_FACTORS[USAGE_TYPE_NORMAL_HOUSEHOLD])
+
+
+def get_usage_type_label(usage_type: str) -> str:
+    """Return the human readable label for a usage profile."""
+    return USAGE_TYPE_LABELS.get(usage_type, USAGE_TYPE_LABELS[USAGE_TYPE_NORMAL_HOUSEHOLD])
+
+
+def get_usage_type_badge(usage_type: str) -> str:
+    """Return the bootstrap badge class for a usage profile."""
+    return USAGE_TYPE_BADGES.get(usage_type, USAGE_TYPE_BADGES[USAGE_TYPE_NORMAL_HOUSEHOLD])
+
+
+def get_utilization_level(utilization: Decimal) -> Dict[str, str]:
+    """Return the level metadata for a given utilization percentage."""
+    for level in SAFE_COMBINATION_LEVELS:
+        if utilization <= level['max']:
+            return level
+    return SAFE_COMBINATION_LEVELS[-1]
+
+
+def calculate_usable_current(max_ampacity: Decimal, usage_type: str = USAGE_TYPE_NORMAL_HOUSEHOLD) -> Decimal:
+    """Compute the allowed current for the selected usage type."""
+    return Decimal(max_ampacity) * get_safety_factor(usage_type)
+
+
+def calculate_usable_power(voltage: Decimal, usable_current: Decimal) -> Decimal:
+    """Compute usable power from voltage and allowable current."""
+    return Decimal(voltage) * Decimal(usable_current)
+
 
 def adjusted_current_for_safety(current: Decimal) -> Decimal:
     """Apply safety factor to current."""
@@ -138,7 +237,12 @@ def recommend_breaker_for_current(current: Decimal) -> int:
     return common[-1]
 
 
-def get_wire_capability(wire_size_id: Optional[int] = None, wire_size: Optional[WireSize] = None, wire_length: Decimal = Decimal('10')) -> Dict:
+def get_wire_capability(
+    wire_size_id: Optional[int] = None,
+    wire_size: Optional[WireSize] = None,
+    wire_length: Decimal = Decimal('10'),
+    usage_type: str = USAGE_TYPE_NORMAL_HOUSEHOLD
+) -> Dict:
     """Return wire capability details for explorer mode."""
     if wire_size is None:
         if wire_size_id is None:
@@ -153,12 +257,16 @@ def get_wire_capability(wire_size_id: Optional[int] = None, wire_size: Optional[
     efficiency = calculate_efficiency(ASSUMED_VOLTAGE, voltage_drop)
     load_voltage = calculate_load_voltage(ASSUMED_VOLTAGE, voltage_drop)
     warning = get_voltage_drop_warning(voltage_drop_percent)
+    safety_factor = get_safety_factor(usage_type)
+    usable_current = calculate_usable_current(Decimal(wire_size.max_ampacity), usage_type)
+    usable_power = calculate_usable_power(ASSUMED_VOLTAGE, usable_current)
 
     return {
         'id': wire_size.id,
         'wire_size_mm2': str(wire_size.wire_size_mm2),
         'max_ampacity': wire_size.max_ampacity,
-        'max_power': max_power.quantize(Decimal('0.01')),
+        'max_power_theoretical': max_power.quantize(Decimal('0.01')),
+        'recommended_max_power': usable_power.quantize(Decimal('0.01')),
         'wire_length': wire_length,
         'resistance': resistance.quantize(Decimal('0.00001')),
         'voltage_drop': voltage_drop.quantize(Decimal('0.01')),
@@ -166,14 +274,21 @@ def get_wire_capability(wire_size_id: Optional[int] = None, wire_size: Optional[
         'load_voltage': load_voltage.quantize(Decimal('0.01')),
         'power_loss': power_loss.quantize(Decimal('0.01')),
         'efficiency': efficiency.quantize(Decimal('0.1')),
+        'usage_type': usage_type,
+        'usage_label': get_usage_type_label(usage_type),
+        'usage_badge': get_usage_type_badge(usage_type),
+        'safety_factor': safety_factor.quantize(Decimal('0.00')),
+        'usable_current': usable_current.quantize(Decimal('0.01')),
+        'usable_power': usable_power.quantize(Decimal('0.01')),
         'warning': warning,
     }
 
 
-def get_compatible_appliances(wire_size: WireSize) -> List[Dict]:
+def get_compatible_appliances(wire_size: WireSize, usage_type: str = USAGE_TYPE_NORMAL_HOUSEHOLD) -> List[Dict]:
     """Return appliances that can safely run on the selected wire size."""
+    usable_current = calculate_usable_current(Decimal(wire_size.max_ampacity), usage_type)
     appliances = ApplianceLoad.objects.filter(
-        estimated_current__lte=wire_size.max_ampacity
+        estimated_current__lte=usable_current
     ).order_by('estimated_current')
 
     results = []
@@ -189,34 +304,83 @@ def get_compatible_appliances(wire_size: WireSize) -> List[Dict]:
     return results
 
 
-def generate_safe_combinations(wire_size: WireSize, max_combinations: int = 5) -> List[Dict]:
-    """Generate safe appliance combinations for the selected wire size."""
+def generate_safe_combinations(
+    wire_size: WireSize,
+    usage_type: str = USAGE_TYPE_NORMAL_HOUSEHOLD,
+    max_combinations: int = 5
+) -> List[Dict]:
+    """Generate safe appliance combinations for the selected wire size using utilization levels."""
+    usable_current = calculate_usable_current(Decimal(wire_size.max_ampacity), usage_type)
     appliances = list(ApplianceLoad.objects.filter(
-        estimated_current__lte=wire_size.max_ampacity
+        estimated_current__lte=usable_current
     ).order_by('estimated_current'))
 
-    results = []
-    max_ampacity = Decimal(wire_size.max_ampacity)
+    if not appliances:
+        return []
 
-    # Try larger combinations first, then smaller.
-    for combination_size in (3, 2, 1):
-        if len(results) >= max_combinations:
-            break
+    max_ampacity = Decimal(wire_size.max_ampacity)
+    usable_limit = usable_current
+    combinations_by_level = {}
+
+    # Generate candidate combinations up to a modest size to keep results responsive.
+    max_combo_size = min(len(appliances), 5)
+    for combination_size in range(1, max_combo_size + 1):
         for combo in combinations(appliances, combination_size):
             total_current = sum((Decimal(ap.estimated_current or 0) for ap in combo), Decimal('0'))
-            if total_current <= max_ampacity:
-                utilization = (total_current / max_ampacity) * Decimal('100') if max_ampacity else Decimal('0')
-                results.append({
-                    'appliances': [appliance.name for appliance in combo],
+            if total_current <= usable_limit:
+                utilization = (total_current / usable_limit) * Decimal('100') if usable_limit else Decimal('0')
+                level_info = get_utilization_level(utilization)
+                level_key = level_info['level']
+
+                sorted_items = sorted(
+                    combo,
+                    key=lambda ap: Decimal(ap.estimated_current or 0),
+                    reverse=True
+                )
+                appliances_data = []
+                for appliance in sorted_items:
+                    current = Decimal(appliance.estimated_current or 0)
+                    contribution_percent = (current / total_current * Decimal('100')) if total_current else Decimal('0')
+                    appliances_data.append({
+                        'name': appliance.name,
+                        'power_watts': appliance.power_watts,
+                        'voltage': appliance.voltage,
+                        'current_amps': current.quantize(Decimal('0.01')),
+                        'contribution_percent': contribution_percent.quantize(Decimal('0.1')),
+                    })
+
+                total_power = sum((Decimal(ap.power_watts or 0) for ap in combo), Decimal('0'))
+                average_voltage = (sum((Decimal(ap.voltage or 0) for ap in combo), Decimal('0')) / len(combo)) if combo else Decimal('0')
+                combo_data = {
+                    'appliances': appliances_data,
+                    'device_count': len(combo),
                     'total_current': total_current.quantize(Decimal('0.01')),
+                    'total_power': total_power.quantize(Decimal('0.01')),
                     'utilization': utilization.quantize(Decimal('0.1')),
                     'wire_limit': max_ampacity,
+                    'usable_limit': usable_limit.quantize(Decimal('0.01')),
+                    'average_voltage': average_voltage.quantize(Decimal('0.1')),
+                    'level': level_key,
+                    'level_label': level_info['label'],
+                    'level_description': level_info['description'],
                     'is_safe': True,
-                })
-                if len(results) >= max_combinations:
-                    break
-        if len(results) >= max_combinations:
-            break
+                }
 
-    results.sort(key=lambda item: item['utilization'], reverse=True)
-    return results
+                existing = combinations_by_level.get(level_key)
+                if existing is None or util_better(combo_data, existing):
+                    combinations_by_level[level_key] = combo_data
+
+    results = sorted(
+        combinations_by_level.values(),
+        key=lambda item: (item['level'], item['utilization']),
+    )
+    return results[:max_combinations]
+
+
+def util_better(candidate: Dict, current: Dict) -> bool:
+    """Choose the better combination for a given utilization level."""
+    if candidate['utilization'] != current['utilization']:
+        return candidate['utilization'] > current['utilization']
+    if candidate['device_count'] != current['device_count']:
+        return candidate['device_count'] > current['device_count']
+    return candidate['total_current'] > current['total_current']

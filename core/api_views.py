@@ -131,6 +131,7 @@ class WireRecommendationViewSet(viewsets.ViewSet):
         serializer = WireRecommendationSerializer(data=request.data)
         if serializer.is_valid():
             required_current = Decimal(serializer.validated_data['required_current'])
+            usage_type = serializer.validated_data.get('usage_type', services.USAGE_TYPE_NORMAL_HOUSEHOLD)
             wire_length = serializer.validated_data.get('wire_length', Decimal('10.00'))
             adjusted_current = services.adjusted_current_for_safety(required_current)
 
@@ -156,11 +157,18 @@ class WireRecommendationViewSet(viewsets.ViewSet):
             voltage_drop_percent = services.calculate_voltage_drop_percent(Decimal('220'), voltage_drop)
             power_loss = services.calculate_power_loss(required_current, resistance)
             efficiency = services.calculate_efficiency(Decimal('220'), voltage_drop)
+            usable_current = services.calculate_usable_current(Decimal(wire_sizes.first().max_ampacity), usage_type)
+            usable_power = services.calculate_usable_power(Decimal('220'), usable_current)
+            safety_factor = services.get_safety_factor(usage_type)
 
             return Response({
                 'required_current': required_current,
-                'wire_length': wire_length,
+                'usage_type': usage_type,
+                'safety_factor': safety_factor.quantize(Decimal('0.00')),
                 'adjusted_current': adjusted_current,
+                'usable_current': usable_current.quantize(Decimal('0.01')),
+                'usable_power': usable_power.quantize(Decimal('0.01')),
+                'wire_length': wire_length,
                 'voltage_drop': voltage_drop.quantize(Decimal('0.01')),
                 'voltage_drop_percent': voltage_drop_percent.quantize(Decimal('0.01')),
                 'power_loss': power_loss.quantize(Decimal('0.01')),
@@ -200,6 +208,7 @@ class PowerCalcViewSet(viewsets.ViewSet):
             except ValueError as exc:
                 return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
+            usage_type = serializer.validated_data.get('usage_type', services.USAGE_TYPE_NORMAL_HOUSEHOLD)
             adjusted_current = services.adjusted_current_for_safety(calculated_current)
             recommendations = services.recommend_wires_for_current(calculated_current)
             wire_resistance = None
@@ -207,6 +216,9 @@ class PowerCalcViewSet(viewsets.ViewSet):
             voltage_drop_percent = None
             power_loss = None
             efficiency = None
+            usable_current = None
+            usable_power = None
+            safety_factor = services.get_safety_factor(usage_type)
 
             if recommendations:
                 first_wire = Decimal(recommendations[0]['wire_size_mm2'])
@@ -216,14 +228,20 @@ class PowerCalcViewSet(viewsets.ViewSet):
                 voltage_drop_percent = services.calculate_voltage_drop_percent(voltage or Decimal('220'), vdrop).quantize(Decimal('0.01'))
                 power_loss = services.calculate_power_loss(calculated_current, wire_resistance).quantize(Decimal('0.01'))
                 efficiency = services.calculate_efficiency(voltage or Decimal('220'), vdrop).quantize(Decimal('0.01'))
+                usable_current = services.calculate_usable_current(Decimal(recommendations[0]['max_ampacity']), usage_type)
+                usable_power = services.calculate_usable_power(voltage or Decimal('220'), usable_current)
 
             out = {
                 'power_watts': power,
                 'voltage': voltage,
                 'current': current,
+                'usage_type': usage_type,
+                'safety_factor': safety_factor.quantize(Decimal('0.00')),
                 'wire_length': wire_length,
                 'computed_current': calculated_current,
                 'adjusted_current': adjusted_current,
+                'usable_current': usable_current.quantize(Decimal('0.01')) if usable_current is not None else None,
+                'usable_power': usable_power.quantize(Decimal('0.01')) if usable_power is not None else None,
                 'wire_resistance': wire_resistance,
                 'voltage_drop': voltage_drop,
                 'voltage_drop_percent': voltage_drop_percent,
@@ -242,16 +260,28 @@ class WireExplorerViewSet(viewsets.ViewSet):
         serializer = WireExplorerRequestSerializer(data=request.data)
         if serializer.is_valid():
             wire_size_id = serializer.validated_data['wire_size_id']
+            usage_type = serializer.validated_data.get('usage_type', services.USAGE_TYPE_NORMAL_HOUSEHOLD)
             wire_length = serializer.validated_data.get('wire_length', Decimal('10.00'))
             wire_size = get_object_or_404(WireSize, pk=wire_size_id)
-            capability = services.get_wire_capability(wire_size=wire_size, wire_length=wire_length)
-            compatible_appliances = services.get_compatible_appliances(wire_size)
-            safe_combinations = services.generate_safe_combinations(wire_size)
+            capability = services.get_wire_capability(
+                wire_size=wire_size,
+                wire_length=wire_length,
+                usage_type=usage_type
+            )
+            compatible_appliances = services.get_compatible_appliances(wire_size, usage_type=usage_type)
+            safe_combinations = services.generate_safe_combinations(wire_size, usage_type=usage_type)
 
             response_data = {
                 'wire_size': capability['wire_size_mm2'],
                 'max_ampacity': capability['max_ampacity'],
-                'max_power': capability['max_power'],
+                'usage_type': capability['usage_type'],
+                'usage_label': capability['usage_label'],
+                'usage_badge': capability['usage_badge'],
+                'safety_factor': capability['safety_factor'],
+                'usable_current': capability['usable_current'],
+                'usable_power': capability['usable_power'],
+                'max_power_theoretical': capability['max_power_theoretical'],
+                'recommended_max_power': capability['recommended_max_power'],
                 'wire_length': capability['wire_length'],
                 'wire_resistance': capability['resistance'],
                 'voltage_drop': capability['voltage_drop'],

@@ -8,6 +8,7 @@ from decimal import Decimal
 from django import forms
 from .models import Component, Category, WireSize
 from .models import ApplianceLoad
+from . import services
 
 
 class CategoryForm(forms.ModelForm):
@@ -196,6 +197,13 @@ class WireExplorerForm(forms.Form):
         widget=forms.Select(attrs={'class': 'form-select'}),
         required=True
     )
+    usage_type = forms.ChoiceField(
+        label='Usage Type',
+        choices=services.USAGE_TYPE_CHOICES,
+        initial=services.USAGE_TYPE_NORMAL_HOUSEHOLD,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        required=True
+    )
     wire_length = forms.DecimalField(
         label='Wire Length (meters)',
         required=False,
@@ -213,6 +221,8 @@ class WireExplorerForm(forms.Form):
         cleaned_data = super().clean()
         if cleaned_data.get('wire_length') is None:
             cleaned_data['wire_length'] = Decimal('10.00')
+        if not cleaned_data.get('usage_type'):
+            cleaned_data['usage_type'] = services.USAGE_TYPE_NORMAL_HOUSEHOLD
         return cleaned_data
 
 

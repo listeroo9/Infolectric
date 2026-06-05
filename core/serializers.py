@@ -7,6 +7,7 @@ from decimal import Decimal
 from rest_framework import serializers
 from .models import Component, Category, WireSize
 from .models import ApplianceLoad
+from . import services
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -55,17 +56,30 @@ class WireSizeSerializer(serializers.ModelSerializer):
 class WireRecommendationSerializer(serializers.Serializer):
     """Serializer for wire recommendation calculator request/response."""
     required_current = serializers.DecimalField(max_digits=6, decimal_places=2)
+    usage_type = serializers.ChoiceField(
+        choices=services.USAGE_TYPE_CHOICES,
+        required=False,
+        default=services.USAGE_TYPE_NORMAL_HOUSEHOLD
+    )
     wire_length = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=Decimal('10.00'))
     wire_resistance = serializers.DecimalField(max_digits=12, decimal_places=6, read_only=True)
     voltage_drop = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     voltage_drop_percent = serializers.DecimalField(max_digits=5, decimal_places=2, read_only=True)
     power_loss = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     efficiency = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True)
+    safety_factor = serializers.DecimalField(max_digits=4, decimal_places=2, read_only=True)
+    usable_current = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    usable_power = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     recommendations = WireSizeSerializer(many=True, read_only=True)
 
 
 class WireExplorerRequestSerializer(serializers.Serializer):
     wire_size_id = serializers.IntegerField()
+    usage_type = serializers.ChoiceField(
+        choices=services.USAGE_TYPE_CHOICES,
+        required=False,
+        default=services.USAGE_TYPE_NORMAL_HOUSEHOLD
+    )
     wire_length = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=Decimal('10.00'))
 
 
@@ -78,18 +92,40 @@ class WireExplorerApplianceSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'name', 'category', 'power_watts', 'voltage', 'estimated_current']
 
 
+class WireExplorerCombinationApplianceSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    power_watts = serializers.DecimalField(max_digits=10, decimal_places=2)
+    voltage = serializers.DecimalField(max_digits=8, decimal_places=2)
+    current_amps = serializers.DecimalField(max_digits=10, decimal_places=2)
+    contribution_percent = serializers.DecimalField(max_digits=5, decimal_places=1)
+
+
 class WireExplorerCombinationSerializer(serializers.Serializer):
-    appliances = serializers.ListField(child=serializers.CharField())
+    appliances = WireExplorerCombinationApplianceSerializer(many=True)
+    device_count = serializers.IntegerField()
     total_current = serializers.DecimalField(max_digits=10, decimal_places=2)
+    total_power = serializers.DecimalField(max_digits=12, decimal_places=2)
+    average_voltage = serializers.DecimalField(max_digits=8, decimal_places=2)
     utilization = serializers.DecimalField(max_digits=5, decimal_places=1)
     wire_limit = serializers.DecimalField(max_digits=10, decimal_places=2)
+    usable_limit = serializers.DecimalField(max_digits=10, decimal_places=2)
+    level = serializers.IntegerField()
+    level_label = serializers.CharField()
+    level_description = serializers.CharField()
     is_safe = serializers.BooleanField()
 
 
 class WireExplorerSerializer(serializers.Serializer):
     wire_size = serializers.CharField()
     max_ampacity = serializers.IntegerField()
-    max_power = serializers.DecimalField(max_digits=12, decimal_places=2)
+    usage_type = serializers.CharField()
+    usage_label = serializers.CharField()
+    usage_badge = serializers.CharField()
+    safety_factor = serializers.DecimalField(max_digits=4, decimal_places=2)
+    usable_current = serializers.DecimalField(max_digits=10, decimal_places=2)
+    usable_power = serializers.DecimalField(max_digits=12, decimal_places=2)
+    max_power_theoretical = serializers.DecimalField(max_digits=12, decimal_places=2)
+    recommended_max_power = serializers.DecimalField(max_digits=12, decimal_places=2)
     wire_length = serializers.DecimalField(max_digits=10, decimal_places=2)
     wire_resistance = serializers.DecimalField(max_digits=12, decimal_places=6)
     voltage_drop = serializers.DecimalField(max_digits=10, decimal_places=2)
@@ -112,6 +148,11 @@ class PowerToCurrentSerializer(serializers.Serializer):
     power_watts = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
     voltage = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, default=Decimal('220.00'))
     current = serializers.DecimalField(max_digits=10, decimal_places=4, required=False)
+    usage_type = serializers.ChoiceField(
+        choices=services.USAGE_TYPE_CHOICES,
+        required=False,
+        default=services.USAGE_TYPE_NORMAL_HOUSEHOLD
+    )
     wire_length = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=Decimal('10.00'))
     computed_current = serializers.DecimalField(max_digits=10, decimal_places=4, read_only=True)
     adjusted_current = serializers.DecimalField(max_digits=10, decimal_places=4, read_only=True)
@@ -120,6 +161,9 @@ class PowerToCurrentSerializer(serializers.Serializer):
     voltage_drop_percent = serializers.DecimalField(max_digits=5, decimal_places=2, read_only=True)
     power_loss = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     efficiency = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True)
+    safety_factor = serializers.DecimalField(max_digits=4, decimal_places=2, read_only=True)
+    usable_current = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    usable_power = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     recommendations = WireSizeSerializer(many=True, read_only=True)
 
     def validate(self, attrs):

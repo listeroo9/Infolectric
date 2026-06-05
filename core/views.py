@@ -268,14 +268,16 @@ def wire_calculator(request):
             explorer_form = WireExplorerForm(request.POST)
             if explorer_form.is_valid():
                 wire_size = explorer_form.cleaned_data['wire_size']
+                usage_type = explorer_form.cleaned_data['usage_type']
                 wire_length = explorer_form.cleaned_data.get('wire_length')
                 try:
                     capability = services.get_wire_capability(
                         wire_size=wire_size,
-                        wire_length=wire_length
+                        wire_length=wire_length,
+                        usage_type=usage_type
                     )
-                    compatible_appliances = services.get_compatible_appliances(wire_size)
-                    safe_combinations = services.generate_safe_combinations(wire_size)
+                    compatible_appliances = services.get_compatible_appliances(wire_size, usage_type=usage_type)
+                    safe_combinations = services.generate_safe_combinations(wire_size, usage_type=usage_type)
                     explorer_results = {
                         'capability': capability,
                         'compatible_appliances': compatible_appliances,
