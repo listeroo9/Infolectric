@@ -90,7 +90,7 @@
                     <fieldset class="mb-4">
                       <legend class="fs-6 fw-bold mb-3">Advanced Input</legend>
 
-                      <div class="mb-0">
+                      <div class="mb-3">
                         <label for="{{ form.current.id_for_label }}" class="form-label">
                           <strong>{{ form.current.label }}</strong>
                         </label>
@@ -101,6 +101,23 @@
                         {% if form.current.errors %}
                           <div class="invalid-feedback d-block">
                             {% for error in form.current.errors %}
+                              {{ error }}
+                            {% endfor %}
+                          </div>
+                        {% endif %}
+                      </div>
+
+                      <div class="mb-0">
+                        <label for="{{ form.wire_length.id_for_label }}" class="form-label">
+                          <strong>{{ form.wire_length.label }}</strong>
+                        </label>
+                        {{ form.wire_length }}
+                        <small class="form-text text-muted d-block mt-2">
+                          Enter the wire run length in meters for voltage drop and loss estimation.
+                        </small>
+                        {% if form.wire_length.errors %}
+                          <div class="invalid-feedback d-block">
+                            {% for error in form.wire_length.errors %}
                               {{ error }}
                             {% endfor %}
                           </div>
@@ -147,6 +164,70 @@
                         <div class="col-md-3">
                           <small class="text-muted d-block">Adjusted Current</small>
                           <strong class="fs-5">{{ result.adjusted_current }} A</strong>
+                        </div>
+                      </div>
+
+                      {% if result.warning %}
+                        <div class="alert alert-{{ result.warning.badge }} mb-4" role="alert">
+                          <span class="badge bg-{{ result.warning.badge }} me-2">
+                            Voltage Drop {{ result.voltage_drop_percent }}%
+                          </span>
+                          <strong>{{ result.warning.label }}:</strong>
+                          Wiring analysis indicates {{ result.warning.label|lower }} voltage drop for the selected wire.
+                        </div>
+                      {% endif %}
+
+                      <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-light">
+                          <h5 class="mb-0">Wire Analysis</h5>
+                        </div>
+                        <div class="card-body">
+                          <div class="row gy-3">
+                            <div class="col-md-4">
+                              <small class="text-muted d-block">Selected Wire Size</small>
+                              <strong>{{ result.selected_wire_size }} mm²</strong>
+                            </div>
+                            <div class="col-md-4">
+                              <small class="text-muted d-block">Wire Length</small>
+                              <strong>{{ result.wire_length }} m</strong>
+                            </div>
+                            <div class="col-md-4">
+                              <small class="text-muted d-block">Maximum Current</small>
+                              <strong>{{ result.selected_wire_max_ampacity }} A</strong>
+                            </div>
+                            <div class="col-md-4">
+                              <small class="text-muted d-block">Maximum Power</small>
+                              <strong>{{ result.max_power }} W</strong>
+                            </div>
+                            <div class="col-md-4">
+                              <small class="text-muted d-block">Wire Resistance</small>
+                              <strong>{{ result.resistance }} Ω</strong>
+                            </div>
+                            <div class="col-md-4">
+                              <small class="text-muted d-block">Source Voltage</small>
+                              <strong>{{ result.voltage }} V</strong>
+                            </div>
+                            <div class="col-md-4">
+                              <small class="text-muted d-block">Voltage Drop</small>
+                              <strong>{{ result.voltage_drop }} V</strong>
+                            </div>
+                            <div class="col-md-4">
+                              <small class="text-muted d-block">Voltage Drop %</small>
+                              <strong>{{ result.voltage_drop_percent }}%</strong>
+                            </div>
+                            <div class="col-md-4">
+                              <small class="text-muted d-block">Load Voltage</small>
+                              <strong>{{ result.load_voltage }} V</strong>
+                            </div>
+                            <div class="col-md-4">
+                              <small class="text-muted d-block">Power Loss</small>
+                              <strong>{{ result.power_loss }} W</strong>
+                            </div>
+                            <div class="col-md-4">
+                              <small class="text-muted d-block">Efficiency</small>
+                              <strong>{{ result.efficiency }}%</strong>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     {% endif %}
@@ -225,6 +306,23 @@
                       {% endif %}
                     </div>
 
+                    <div class="mb-4">
+                      <label for="{{ explorer_form.wire_length.id_for_label }}" class="form-label">
+                        <strong>{{ explorer_form.wire_length.label }}</strong>
+                      </label>
+                      {{ explorer_form.wire_length }}
+                      <small class="form-text text-muted d-block mt-2">
+                        Enter the run length in meters for the wire explorer analysis.
+                      </small>
+                      {% if explorer_form.wire_length.errors %}
+                        <div class="invalid-feedback d-block">
+                          {% for error in explorer_form.wire_length.errors %}
+                            {{ error }}
+                          {% endfor %}
+                        </div>
+                      {% endif %}
+                    </div>
+
                     <button type="submit" class="btn btn-success btn-lg w-100">
                       <i class="fas fa-search"></i> Explore Wire Capability
                     </button>
@@ -255,7 +353,7 @@
                             <strong class="fs-5">{{ explorer_results.capability.max_ampacity }} A</strong>
                           </div>
                           <div class="col-md-3 mb-3 mb-md-0">
-                            <small class="text-muted d-block">Assumed Voltage</small>
+                            <small class="text-muted d-block">Source Voltage</small>
                             <strong class="fs-5">220 V</strong>
                           </div>
                           <div class="col-md-3">
@@ -264,6 +362,55 @@
                           </div>
                         </div>
                       </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row mb-4">
+                  <div class="col-12">
+                    <div class="card shadow-sm">
+                      <div class="card-header bg-light">
+                        <h5 class="mb-0">Wire Performance</h5>
+                      </div>
+                      <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                          <span class="badge bg-{{ explorer_results.capability.warning.badge }} me-3">
+                            Voltage Drop {{ explorer_results.capability.voltage_drop_percent }}%
+                          </span>
+                          <span class="fw-semibold">{{ explorer_results.capability.warning.label }}</span>
+                        </div>
+                        <div class="row gy-3">
+                          <div class="col-md-4">
+                            <small class="text-muted d-block">Voltage Drop</small>
+                            <strong>{{ explorer_results.capability.voltage_drop }} V</strong>
+                          </div>
+                          <div class="col-md-4">
+                            <small class="text-muted d-block">Voltage Drop %</small>
+                            <strong>{{ explorer_results.capability.voltage_drop_percent }}%</strong>
+                          </div>
+                          <div class="col-md-4">
+                            <small class="text-muted d-block">Load Voltage</small>
+                            <strong>{{ explorer_results.capability.load_voltage }} V</strong>
+                          </div>
+                          <div class="col-md-4">
+                            <small class="text-muted d-block">Power Loss</small>
+                            <strong>{{ explorer_results.capability.power_loss }} W</strong>
+                          </div>
+                          <div class="col-md-4">
+                            <small class="text-muted d-block">Efficiency</small>
+                            <strong>{{ explorer_results.capability.efficiency }}%</strong>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row mb-4">
+                  <div class="col-12">
+                    <div class="alert alert-secondary">
+                      <p class="mb-1"><strong>Source Voltage</strong> is the voltage from the power source.</p>
+                      <p class="mb-0"><strong>Load Voltage</strong> is the voltage actually received by the appliance after losses in the wire.</p>
                     </div>
                   </div>
                 </div>

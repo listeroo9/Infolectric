@@ -49,11 +49,60 @@ def calculate_current(power_watts: Decimal = None, voltage: Decimal = None, curr
 
 
 SAFETY_FACTOR = Decimal('1.25')
+COPPER_RESISTIVITY = Decimal('0.0000000172')  # Ohm meter for copper
+ASSUMED_VOLTAGE = Decimal('220')
 
 
 def adjusted_current_for_safety(current: Decimal) -> Decimal:
     """Apply safety factor to current."""
     return Decimal(current) * SAFETY_FACTOR
+
+
+def calculate_wire_resistance(wire_size_mm2: Decimal, length_m: Decimal) -> Decimal:
+    """Calculate copper wire resistance for a given cross-sectional area and length."""
+    if wire_size_mm2 <= 0 or length_m <= 0:
+        raise ValueError('Wire size and length must be positive values')
+
+    area_m2 = wire_size_mm2 * Decimal('0.000001')
+    return (COPPER_RESISTIVITY * length_m) / area_m2
+
+
+def calculate_voltage_drop(current: Decimal, resistance: Decimal) -> Decimal:
+    """Compute voltage drop from current and wire resistance."""
+    return Decimal(current) * Decimal(resistance)
+
+
+def calculate_power_loss(current: Decimal, resistance: Decimal) -> Decimal:
+    """Compute power loss due to wire resistance."""
+    return Decimal(current) * Decimal(current) * Decimal(resistance)
+
+
+def calculate_voltage_drop_percent(voltage: Decimal, voltage_drop: Decimal) -> Decimal:
+    """Compute voltage drop percentage."""
+    if voltage == 0:
+        return Decimal('0')
+    return (Decimal(voltage_drop) / Decimal(voltage)) * Decimal('100')
+
+
+def calculate_efficiency(voltage: Decimal, voltage_drop: Decimal) -> Decimal:
+    """Compute efficiency as a percentage of delivered voltage."""
+    if voltage == 0:
+        return Decimal('0')
+    return ((Decimal(voltage) - Decimal(voltage_drop)) / Decimal(voltage)) * Decimal('100')
+
+
+def calculate_load_voltage(source_voltage: Decimal, voltage_drop: Decimal) -> Decimal:
+    """Compute the voltage available at the appliance after wire losses."""
+    return Decimal(source_voltage) - Decimal(voltage_drop)
+
+
+def get_voltage_drop_warning(voltage_drop_percent: Decimal) -> Dict[str, str]:
+    """Return warning status for voltage drop percentages."""
+    if voltage_drop_percent < Decimal('3'):
+        return {'label': 'Excellent', 'badge': 'success'}
+    if voltage_drop_percent <= Decimal('5'):
+        return {'label': 'Acceptable', 'badge': 'warning'}
+    return {'label': 'Not Recommended', 'badge': 'danger'}
 
 
 def recommend_wires_for_current(current: Decimal) -> List[Dict]:
@@ -89,19 +138,35 @@ def recommend_breaker_for_current(current: Decimal) -> int:
     return common[-1]
 
 
-def get_wire_capability(wire_size_id: Optional[int] = None, wire_size: Optional[WireSize] = None) -> Dict:
+def get_wire_capability(wire_size_id: Optional[int] = None, wire_size: Optional[WireSize] = None, wire_length: Decimal = Decimal('10')) -> Dict:
     """Return wire capability details for explorer mode."""
     if wire_size is None:
         if wire_size_id is None:
             raise ValueError('Wire size id is required')
         wire_size = WireSize.objects.get(pk=wire_size_id)
 
-    max_power = Decimal(wire_size.max_ampacity) * Decimal('220')
+    max_power = Decimal(wire_size.max_ampacity) * ASSUMED_VOLTAGE
+    resistance = calculate_wire_resistance(Decimal(wire_size.wire_size_mm2), wire_length)
+    voltage_drop = calculate_voltage_drop(Decimal(wire_size.max_ampacity), resistance)
+    voltage_drop_percent = calculate_voltage_drop_percent(ASSUMED_VOLTAGE, voltage_drop)
+    power_loss = calculate_power_loss(Decimal(wire_size.max_ampacity), resistance)
+    efficiency = calculate_efficiency(ASSUMED_VOLTAGE, voltage_drop)
+    load_voltage = calculate_load_voltage(ASSUMED_VOLTAGE, voltage_drop)
+    warning = get_voltage_drop_warning(voltage_drop_percent)
+
     return {
         'id': wire_size.id,
         'wire_size_mm2': str(wire_size.wire_size_mm2),
         'max_ampacity': wire_size.max_ampacity,
-        'max_power': max_power,
+        'max_power': max_power.quantize(Decimal('0.01')),
+        'wire_length': wire_length,
+        'resistance': resistance.quantize(Decimal('0.00001')),
+        'voltage_drop': voltage_drop.quantize(Decimal('0.01')),
+        'voltage_drop_percent': voltage_drop_percent.quantize(Decimal('0.1')),
+        'load_voltage': load_voltage.quantize(Decimal('0.01')),
+        'power_loss': power_loss.quantize(Decimal('0.01')),
+        'efficiency': efficiency.quantize(Decimal('0.1')),
+        'warning': warning,
     }
 
 

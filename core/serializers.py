@@ -55,11 +55,18 @@ class WireSizeSerializer(serializers.ModelSerializer):
 class WireRecommendationSerializer(serializers.Serializer):
     """Serializer for wire recommendation calculator request/response."""
     required_current = serializers.DecimalField(max_digits=6, decimal_places=2)
+    wire_length = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=Decimal('10.00'))
+    wire_resistance = serializers.DecimalField(max_digits=12, decimal_places=6, read_only=True)
+    voltage_drop = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    voltage_drop_percent = serializers.DecimalField(max_digits=5, decimal_places=2, read_only=True)
+    power_loss = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    efficiency = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True)
     recommendations = WireSizeSerializer(many=True, read_only=True)
 
 
 class WireExplorerRequestSerializer(serializers.Serializer):
     wire_size_id = serializers.IntegerField()
+    wire_length = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=Decimal('10.00'))
 
 
 class WireExplorerApplianceSerializer(serializers.ModelSerializer):
@@ -83,6 +90,13 @@ class WireExplorerSerializer(serializers.Serializer):
     wire_size = serializers.CharField()
     max_ampacity = serializers.IntegerField()
     max_power = serializers.DecimalField(max_digits=12, decimal_places=2)
+    wire_length = serializers.DecimalField(max_digits=10, decimal_places=2)
+    wire_resistance = serializers.DecimalField(max_digits=12, decimal_places=6)
+    voltage_drop = serializers.DecimalField(max_digits=10, decimal_places=2)
+    voltage_drop_percent = serializers.DecimalField(max_digits=5, decimal_places=2)
+    power_loss = serializers.DecimalField(max_digits=12, decimal_places=2)
+    efficiency = serializers.DecimalField(max_digits=6, decimal_places=2)
+    warning = serializers.DictField(child=serializers.CharField())
     compatible_appliances = WireExplorerApplianceSerializer(many=True)
     safe_combinations = WireExplorerCombinationSerializer(many=True)
 
@@ -98,8 +112,14 @@ class PowerToCurrentSerializer(serializers.Serializer):
     power_watts = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
     voltage = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, default=Decimal('220.00'))
     current = serializers.DecimalField(max_digits=10, decimal_places=4, required=False)
+    wire_length = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=Decimal('10.00'))
     computed_current = serializers.DecimalField(max_digits=10, decimal_places=4, read_only=True)
     adjusted_current = serializers.DecimalField(max_digits=10, decimal_places=4, read_only=True)
+    wire_resistance = serializers.DecimalField(max_digits=12, decimal_places=6, read_only=True)
+    voltage_drop = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    voltage_drop_percent = serializers.DecimalField(max_digits=5, decimal_places=2, read_only=True)
+    power_loss = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    efficiency = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True)
     recommendations = WireSizeSerializer(many=True, read_only=True)
 
     def validate(self, attrs):
@@ -112,6 +132,9 @@ class PowerToCurrentSerializer(serializers.Serializer):
 
         if current is None and voltage is None:
             attrs['voltage'] = Decimal('220.00')
+
+        if attrs.get('wire_length') is None:
+            attrs['wire_length'] = Decimal('10.00')
 
         return attrs
 

@@ -268,8 +268,12 @@ def wire_calculator(request):
             explorer_form = WireExplorerForm(request.POST)
             if explorer_form.is_valid():
                 wire_size = explorer_form.cleaned_data['wire_size']
+                wire_length = explorer_form.cleaned_data.get('wire_length')
                 try:
-                    capability = services.get_wire_capability(wire_size=wire_size)
+                    capability = services.get_wire_capability(
+                        wire_size=wire_size,
+                        wire_length=wire_length
+                    )
                     compatible_appliances = services.get_compatible_appliances(wire_size)
                     safe_combinations = services.generate_safe_combinations(wire_size)
                     explorer_results = {
@@ -286,6 +290,7 @@ def wire_calculator(request):
                 power = form.cleaned_data.get('power_watts')
                 voltage = form.cleaned_data.get('voltage')
                 current = form.cleaned_data.get('current')
+                wire_length = form.cleaned_data.get('wire_length') or Decimal('10')
 
                 try:
                     current_value = services.calculate_current(
@@ -304,11 +309,35 @@ def wire_calculator(request):
                             f"Maximum available ampacity is {max_available}A."
                         )
                     else:
+                        first_wire = recommendations[0]
+                        selected_wire_size = Decimal(first_wire['wire_size_mm2'])
+                        selected_wire_max_ampacity = Decimal(first_wire['max_ampacity'])
+                        resistance = services.calculate_wire_resistance(selected_wire_size, wire_length)
+                        voltage_value = voltage or Decimal('220')
+                        voltage_drop = services.calculate_voltage_drop(current_value, resistance)
+                        voltage_drop_percent = services.calculate_voltage_drop_percent(voltage_value, voltage_drop)
+                        power_loss = services.calculate_power_loss(current_value, resistance)
+                        efficiency = services.calculate_efficiency(voltage_value, voltage_drop)
+                        load_voltage = services.calculate_load_voltage(voltage_value, voltage_drop)
+                        max_power = selected_wire_max_ampacity * voltage_value
+                        warning = services.get_voltage_drop_warning(voltage_drop_percent)
+
                         result = {
                             'power_watts': power,
-                            'voltage': voltage or Decimal('220'),
+                            'voltage': voltage_value,
                             'current': current_value,
                             'adjusted_current': adjusted_current,
+                            'wire_length': wire_length,
+                            'selected_wire_size': str(selected_wire_size),
+                            'selected_wire_max_ampacity': selected_wire_max_ampacity,
+                            'max_power': max_power,
+                            'resistance': resistance,
+                            'voltage_drop': voltage_drop,
+                            'voltage_drop_percent': voltage_drop_percent,
+                            'load_voltage': load_voltage,
+                            'power_loss': power_loss,
+                            'efficiency': efficiency,
+                            'warning': warning,
                         }
                 except Exception as exc:
                     error_message = str(exc)

@@ -3,6 +3,8 @@ Forms for the Infolectric application.
 Includes forms for Component, Category, and WireSize models.
 """
 
+from decimal import Decimal
+
 from django import forms
 from .models import Component, Category, WireSize
 from .models import ApplianceLoad
@@ -143,17 +145,33 @@ class WireCalculatorForm(forms.Form):
             'step': '0.1'
         })
     )
+    wire_length = forms.DecimalField(
+        label='Wire Length (meters)',
+        required=False,
+        min_value=1,
+        decimal_places=2,
+        initial=10,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter wire length in meters',
+            'step': '0.1'
+        })
+    )
 
     def clean(self):
         cleaned_data = super().clean()
         power = cleaned_data.get('power_watts')
         voltage = cleaned_data.get('voltage')
         current = cleaned_data.get('current')
+        wire_length = cleaned_data.get('wire_length')
 
         if current is None and power is None:
             raise forms.ValidationError(
                 'Provide either current directly or both power and voltage.'
             )
+
+        if wire_length is None:
+            cleaned_data['wire_length'] = Decimal('10.00')
 
         if current is None:
             if voltage is None:
@@ -178,6 +196,24 @@ class WireExplorerForm(forms.Form):
         widget=forms.Select(attrs={'class': 'form-select'}),
         required=True
     )
+    wire_length = forms.DecimalField(
+        label='Wire Length (meters)',
+        required=False,
+        min_value=1,
+        decimal_places=2,
+        initial=10,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter wire length in meters',
+            'step': '0.1'
+        })
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get('wire_length') is None:
+            cleaned_data['wire_length'] = Decimal('10.00')
+        return cleaned_data
 
 
 class ApplianceLoadForm(forms.ModelForm):

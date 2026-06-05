@@ -3,6 +3,7 @@ API views for the Infolectric application.
 RESTful API endpoints for components, categories, wire sizes, and calculator.
 """
 
+from decimal import Decimal
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -112,31 +113,31 @@ class WireRecommendationViewSet(viewsets.ViewSet):
         
         Request body:
         {
-            "required_current": 10.5
+            "required_current": 10.5,
+            "wire_length": 10
         }
         
         Response:
         {
             "required_current": 10.5,
-            "recommendations": [
-                {
-                    "id": 1,
-                    "wire_size_mm2": "16.00",
-                    "max_ampacity": 20,
-                    "description": "Household circuits"
-                }
-            ]
+            "wire_length": 10,
+            "voltage_drop": 3.2,
+            "voltage_drop_percent": 1.45,
+            "power_loss": 12.6,
+            "efficiency": 98.5,
+            "recommendations": [ ... ]
         }
         """
         serializer = WireRecommendationSerializer(data=request.data)
         if serializer.is_valid():
-            required_current = float(serializer.validated_data['required_current'])
+            required_current = Decimal(serializer.validated_data['required_current'])
+            wire_length = serializer.validated_data.get('wire_length', Decimal('10.00'))
             adjusted_current = services.adjusted_current_for_safety(required_current)
-            
+
             wire_sizes = WireSize.objects.filter(
                 max_ampacity__gte=adjusted_current
             ).order_by('wire_size_mm2')
-            
+
             if not wire_sizes.exists():
                 return Response(
                     {
@@ -147,14 +148,26 @@ class WireRecommendationViewSet(viewsets.ViewSet):
                     },
                     status=status.HTTP_404_NOT_FOUND
                 )
-            
+
             wire_serializer = WireSizeSerializer(wire_sizes, many=True)
+            selected_wire_size = Decimal(wire_sizes.first().wire_size_mm2)
+            resistance = services.calculate_wire_resistance(selected_wire_size, wire_length)
+            voltage_drop = services.calculate_voltage_drop(required_current, resistance)
+            voltage_drop_percent = services.calculate_voltage_drop_percent(Decimal('220'), voltage_drop)
+            power_loss = services.calculate_power_loss(required_current, resistance)
+            efficiency = services.calculate_efficiency(Decimal('220'), voltage_drop)
+
             return Response({
                 'required_current': required_current,
+                'wire_length': wire_length,
                 'adjusted_current': adjusted_current,
+                'voltage_drop': voltage_drop.quantize(Decimal('0.01')),
+                'voltage_drop_percent': voltage_drop_percent.quantize(Decimal('0.01')),
+                'power_loss': power_loss.quantize(Decimal('0.01')),
+                'efficiency': efficiency.quantize(Decimal('0.01')),
                 'recommendations': wire_serializer.data
             })
-        
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -177,6 +190,7 @@ class PowerCalcViewSet(viewsets.ViewSet):
             power = serializer.validated_data.get('power_watts')
             voltage = serializer.validated_data.get('voltage')
             current = serializer.validated_data.get('current')
+            wire_length = serializer.validated_data.get('wire_length', Decimal('10.00'))
             try:
                 calculated_current = services.calculate_current(
                     power_watts=power,
@@ -188,12 +202,33 @@ class PowerCalcViewSet(viewsets.ViewSet):
 
             adjusted_current = services.adjusted_current_for_safety(calculated_current)
             recommendations = services.recommend_wires_for_current(calculated_current)
+            wire_resistance = None
+            voltage_drop = None
+            voltage_drop_percent = None
+            power_loss = None
+            efficiency = None
+
+            if recommendations:
+                first_wire = Decimal(recommendations[0]['wire_size_mm2'])
+                wire_resistance = services.calculate_wire_resistance(first_wire, wire_length)
+                vdrop = services.calculate_voltage_drop(calculated_current, wire_resistance)
+                voltage_drop = vdrop.quantize(Decimal('0.01'))
+                voltage_drop_percent = services.calculate_voltage_drop_percent(voltage or Decimal('220'), vdrop).quantize(Decimal('0.01'))
+                power_loss = services.calculate_power_loss(calculated_current, wire_resistance).quantize(Decimal('0.01'))
+                efficiency = services.calculate_efficiency(voltage or Decimal('220'), vdrop).quantize(Decimal('0.01'))
+
             out = {
                 'power_watts': power,
                 'voltage': voltage,
                 'current': current,
+                'wire_length': wire_length,
                 'computed_current': calculated_current,
                 'adjusted_current': adjusted_current,
+                'wire_resistance': wire_resistance,
+                'voltage_drop': voltage_drop,
+                'voltage_drop_percent': voltage_drop_percent,
+                'power_loss': power_loss,
+                'efficiency': efficiency,
                 'recommendations': recommendations,
             }
             return Response(out)
@@ -207,8 +242,9 @@ class WireExplorerViewSet(viewsets.ViewSet):
         serializer = WireExplorerRequestSerializer(data=request.data)
         if serializer.is_valid():
             wire_size_id = serializer.validated_data['wire_size_id']
+            wire_length = serializer.validated_data.get('wire_length', Decimal('10.00'))
             wire_size = get_object_or_404(WireSize, pk=wire_size_id)
-            capability = services.get_wire_capability(wire_size=wire_size)
+            capability = services.get_wire_capability(wire_size=wire_size, wire_length=wire_length)
             compatible_appliances = services.get_compatible_appliances(wire_size)
             safe_combinations = services.generate_safe_combinations(wire_size)
 
@@ -216,6 +252,13 @@ class WireExplorerViewSet(viewsets.ViewSet):
                 'wire_size': capability['wire_size_mm2'],
                 'max_ampacity': capability['max_ampacity'],
                 'max_power': capability['max_power'],
+                'wire_length': capability['wire_length'],
+                'wire_resistance': capability['resistance'],
+                'voltage_drop': capability['voltage_drop'],
+                'voltage_drop_percent': capability['voltage_drop_percent'],
+                'power_loss': capability['power_loss'],
+                'efficiency': capability['efficiency'],
+                'warning': capability['warning'],
                 'compatible_appliances': compatible_appliances,
                 'safe_combinations': safe_combinations,
             }
