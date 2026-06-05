@@ -3,7 +3,6 @@ Calculation services for Infolectric.
 Contains power->current conversion, adjusted current and wire recommendation logic.
 """
 from decimal import Decimal, InvalidOperation
-from itertools import combinations
 from typing import List, Dict, Optional
 
 from django.db.models import QuerySet
@@ -304,76 +303,83 @@ def get_compatible_appliances(wire_size: WireSize, usage_type: str = USAGE_TYPE_
     return results
 
 
+LEVEL_TARGETS = [
+    (1, Decimal('0.20')),
+    (2, Decimal('0.40')),
+    (3, Decimal('0.60')),
+    (4, Decimal('0.80')),
+    (5, Decimal('0.95')),
+]
+
+
 def generate_safe_combinations(
     wire_size: WireSize,
     usage_type: str = USAGE_TYPE_NORMAL_HOUSEHOLD,
     max_combinations: int = 5
 ) -> List[Dict]:
-    """Generate safe appliance combinations for the selected wire size using utilization levels."""
+    """Generate safe appliance combinations using deterministic utilization targets."""
     usable_current = calculate_usable_current(Decimal(wire_size.max_ampacity), usage_type)
     appliances = list(ApplianceLoad.objects.filter(
         estimated_current__lte=usable_current
-    ).order_by('estimated_current'))
+    ).order_by('-estimated_current'))
 
     if not appliances:
         return []
 
     max_ampacity = Decimal(wire_size.max_ampacity)
     usable_limit = usable_current
-    combinations_by_level = {}
+    results = []
 
-    # Generate candidate combinations up to a modest size to keep results responsive.
-    max_combo_size = min(len(appliances), 5)
-    for combination_size in range(1, max_combo_size + 1):
-        for combo in combinations(appliances, combination_size):
-            total_current = sum((Decimal(ap.estimated_current or 0) for ap in combo), Decimal('0'))
-            if total_current <= usable_limit:
-                utilization = (total_current / usable_limit) * Decimal('100') if usable_limit else Decimal('0')
-                level_info = get_utilization_level(utilization)
-                level_key = level_info['level']
+    for level, ratio in LEVEL_TARGETS:
+        target_current = (usable_limit * ratio).quantize(Decimal('0.01'))
+        combo_items = []
+        combo_current = Decimal('0')
 
-                sorted_items = sorted(
-                    combo,
-                    key=lambda ap: Decimal(ap.estimated_current or 0),
-                    reverse=True
-                )
-                appliances_data = []
-                for appliance in sorted_items:
-                    current = Decimal(appliance.estimated_current or 0)
-                    contribution_percent = (current / total_current * Decimal('100')) if total_current else Decimal('0')
-                    appliances_data.append({
-                        'name': appliance.name,
-                        'power_watts': appliance.power_watts,
-                        'voltage': appliance.voltage,
-                        'current_amps': current.quantize(Decimal('0.01')),
-                        'contribution_percent': contribution_percent.quantize(Decimal('0.1')),
-                    })
+        for appliance in appliances:
+            ap_current = Decimal(appliance.estimated_current or 0)
+            if combo_current + ap_current <= target_current:
+                combo_items.append(appliance)
+                combo_current += ap_current
 
-                total_power = sum((Decimal(ap.power_watts or 0) for ap in combo), Decimal('0'))
-                average_voltage = (sum((Decimal(ap.voltage or 0) for ap in combo), Decimal('0')) / len(combo)) if combo else Decimal('0')
-                combo_data = {
-                    'appliances': appliances_data,
-                    'device_count': len(combo),
-                    'total_current': total_current.quantize(Decimal('0.01')),
-                    'total_power': total_power.quantize(Decimal('0.01')),
-                    'utilization': utilization.quantize(Decimal('0.1')),
-                    'wire_limit': max_ampacity,
-                    'usable_limit': usable_limit.quantize(Decimal('0.01')),
-                    'average_voltage': average_voltage.quantize(Decimal('0.1')),
-                    'level': level_key,
-                    'level_label': level_info['label'],
-                    'level_description': level_info['description'],
-                    'is_safe': True,
-                }
+        if not combo_items:
+            fallback = next((ap for ap in reversed(appliances) if Decimal(ap.estimated_current or 0) <= usable_limit), None)
+            if fallback:
+                combo_items = [fallback]
+                combo_current = Decimal(fallback.estimated_current or 0)
 
-                existing = combinations_by_level.get(level_key)
-                if existing is None or util_better(combo_data, existing):
-                    combinations_by_level[level_key] = combo_data
+        total_power = sum((Decimal(ap.power_watts or 0) for ap in combo_items), Decimal('0'))
+        total_voltage = sum((Decimal(ap.voltage or 0) for ap in combo_items), Decimal('0'))
+        average_voltage = (total_voltage / len(combo_items)) if combo_items else Decimal('0')
+        utilization = (combo_current / usable_limit * Decimal('100')) if usable_limit else Decimal('0')
 
-    results = sorted(
-        combinations_by_level.values(),
-        key=lambda item: (item['level'], item['utilization']),
-    )
+        appliances_data = []
+        for appliance in sorted(combo_items, key=lambda ap: Decimal(ap.estimated_current or 0), reverse=True):
+            current = Decimal(appliance.estimated_current or 0)
+            contribution_percent = (current / combo_current * Decimal('100')) if combo_current else Decimal('0')
+            appliances_data.append({
+                'name': appliance.name,
+                'power_watts': appliance.power_watts,
+                'voltage': appliance.voltage,
+                'current_amps': current.quantize(Decimal('0.01')),
+                'contribution_percent': contribution_percent.quantize(Decimal('0.1')),
+            })
+
+        level_info = next((item for item in SAFE_COMBINATION_LEVELS if item['level'] == level), SAFE_COMBINATION_LEVELS[-1])
+        results.append({
+            'appliances': appliances_data,
+            'device_count': len(combo_items),
+            'total_current': combo_current.quantize(Decimal('0.01')),
+            'total_power': total_power.quantize(Decimal('0.01')),
+            'average_voltage': average_voltage.quantize(Decimal('0.1')),
+            'utilization': utilization.quantize(Decimal('0.1')),
+            'wire_limit': max_ampacity,
+            'usable_limit': usable_limit.quantize(Decimal('0.01')),
+            'level': level,
+            'level_label': level_info['label'],
+            'level_description': level_info['description'],
+            'is_safe': True,
+        })
+
     return results[:max_combinations]
 
 

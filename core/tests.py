@@ -104,8 +104,8 @@ class UsageProfileServiceTest(TestCase):
         ApplianceLoad.objects.create(name='Space Heater', power_watts=1200, voltage=220, category=category)
 
         combos = services.generate_safe_combinations(wire_size)
-        self.assertTrue(any(combo['level'] == 1 for combo in combos))
-        self.assertTrue(any(combo['level'] >= 1 for combo in combos))
+        self.assertEqual(len(combos), 5)
+        self.assertTrue(all(combo['level'] in [1, 2, 3, 4, 5] for combo in combos))
         self.assertTrue(all(combo['total_current'] <= Decimal('18.00') for combo in combos))
         self.assertTrue(all('level_label' in combo for combo in combos))
         self.assertTrue(all('device_count' in combo for combo in combos))
