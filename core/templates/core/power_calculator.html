@@ -8,11 +8,11 @@
     {% csrf_token %}
     <div class="col-md-4">
       <label class="form-label">Power (W)</label>
-      <input name="power_watts" type="number" step="0.1" class="form-control" required>
+      <input name="power_watts" type="number" step="any" class="form-control" required>
     </div>
     <div class="col-md-4">
       <label class="form-label">Voltage (V)</label>
-      <input name="voltage" type="number" step="0.1" class="form-control" value="230" required>
+      <input name="voltage" type="number" step="any" class="form-control" value="230" required>
     </div>
     <div class="col-md-4 align-self-end">
       <button class="btn btn-primary">Calculate</button>

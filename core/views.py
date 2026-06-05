@@ -325,20 +325,20 @@ def wire_calculator(request):
                         warning = services.get_voltage_drop_warning(voltage_drop_percent)
 
                         result = {
-                            'power_watts': power,
-                            'voltage': voltage_value,
-                            'current': current_value,
-                            'adjusted_current': adjusted_current,
-                            'wire_length': wire_length,
+                            'power_watts': services.format_decimal(power or Decimal('0'), 2) if power is not None else None,
+                            'voltage': services.format_decimal(voltage_value, 2),
+                            'current': services.format_decimal(current_value, 3),
+                            'adjusted_current': services.format_decimal(adjusted_current, 3),
+                            'wire_length': services.format_decimal(wire_length, 2),
                             'selected_wire_size': str(selected_wire_size),
-                            'selected_wire_max_ampacity': selected_wire_max_ampacity,
-                            'max_power': max_power,
-                            'resistance': resistance,
-                            'voltage_drop': voltage_drop,
-                            'voltage_drop_percent': voltage_drop_percent,
-                            'load_voltage': load_voltage,
-                            'power_loss': power_loss,
-                            'efficiency': efficiency,
+                            'selected_wire_max_ampacity': services.format_decimal(selected_wire_max_ampacity, 2),
+                            'max_power': services.format_decimal(max_power, 2),
+                            'resistance': services.format_decimal(resistance, 5),
+                            'voltage_drop': services.format_decimal(voltage_drop, 3),
+                            'voltage_drop_percent': services.format_decimal(voltage_drop_percent, 2),
+                            'load_voltage': services.format_decimal(load_voltage, 2),
+                            'power_loss': services.format_decimal(power_loss, 2),
+                            'efficiency': services.format_decimal(efficiency, 2),
                             'warning': warning,
                         }
                 except Exception as exc:
@@ -377,10 +377,10 @@ def power_calculator_view(request):
             adjusted = services.adjusted_current_for_safety(current)
             recommendations = services.recommend_wires_for_current(current)
             result = {
-                'power_watts': power,
-                'voltage': voltage,
-                'current': current,
-                'adjusted_current': adjusted,
+                'power_watts': services.format_decimal(services.to_decimal(power), 2),
+                'voltage': services.format_decimal(services.to_decimal(voltage), 2),
+                'current': services.format_decimal(current, 3),
+                'adjusted_current': services.format_decimal(adjusted, 3),
             }
         except Exception as exc:
             error = str(exc)
@@ -452,8 +452,8 @@ def ProjectBuilderView(request):
     error = None
     if request.method == 'POST' and form.is_valid():
         appliances = form.cleaned_data['appliances']
-        total_power = sum([float(a.power_watts or 0) for a in appliances])
-        voltage = float(appliances.first().voltage or 230)
+        total_power = sum((services.to_decimal(a.power_watts or 0) for a in appliances), Decimal('0'))
+        voltage = services.to_decimal(appliances.first().voltage or Decimal('230'))
         try:
             total_current = services.power_to_current(total_power, voltage)
         except ValueError as exc:

@@ -3,6 +3,7 @@ Models for the Infolectric application.
 Includes Component, Category, and WireSize models.
 """
 
+from decimal import Decimal, InvalidOperation
 from django.db import models
 from django.core.validators import MinValueValidator
 
@@ -119,14 +120,14 @@ class ApplianceLoad(models.Model):
         return f"{self.name} ({self.power_watts}W @ {self.voltage}V)"
 
     def save(self, *args, **kwargs):
-        # safe calculation: avoid division by zero
-        try:
-            v = float(self.voltage)
-            p = float(self.power_watts)
-            if v and v != 0:
-                self.estimated_current = p / v
-            else:
+        # Only compute estimated_current when stored fields are proper Decimals.
+        # Avoid converting here; keep conversions centralized in services.
+        if isinstance(self.power_watts, Decimal) and isinstance(self.voltage, Decimal) and self.voltage != 0:
+            try:
+                self.estimated_current = self.power_watts / self.voltage
+            except Exception:
                 self.estimated_current = None
-        except Exception:
+        else:
             self.estimated_current = None
+
         super().save(*args, **kwargs)

@@ -10,16 +10,43 @@ from django.db.models import QuerySet
 from .models import ApplianceLoad, WireSize
 
 
+def to_decimal(value) -> Decimal:
+    """Normalize numeric input to Decimal using string conversion."""
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        raise ValueError('Invalid numeric value')
+
+
+def assert_decimal(value, name: str = 'value') -> Decimal:
+    """Assert that the provided value is a Decimal."""
+    if not isinstance(value, Decimal):
+        raise TypeError(f'{name} must be Decimal, got {type(value).__name__}')
+    return value
+
+
+def format_decimal(value, places: int) -> Decimal:
+    """Quantize a Decimal to the given number of decimal places and return a Decimal.
+
+    Keeps internal precision but provides a human-friendly rounded value for output.
+    """
+    d = to_decimal(value)
+    assert_decimal(d)
+    if places < 0:
+        raise ValueError('places must be non-negative')
+    quant = Decimal('1').scaleb(-places)
+    return d.quantize(quant)
+
+
 def power_to_current(power_watts: Decimal, voltage: Decimal) -> Decimal:
     """Calculate current I = P / V with validation.
 
     Raises ValueError on invalid inputs.
     """
-    try:
-        p = Decimal(power_watts)
-        v = Decimal(voltage)
-    except (InvalidOperation, TypeError):
-        raise ValueError('Invalid numeric values for power or voltage')
+    p = to_decimal(power_watts)
+    v = to_decimal(voltage)
+    assert_decimal(p, 'power_watts')
+    assert_decimal(v, 'voltage')
 
     if v == 0:
         raise ValueError('Voltage must be non-zero')
@@ -39,10 +66,7 @@ def calculate_current(power_watts: Decimal = None, voltage: Decimal = None, curr
         return power_to_current(power_watts, voltage)
 
     if current is not None:
-        try:
-            return Decimal(current)
-        except (InvalidOperation, TypeError):
-            raise ValueError('Invalid current value')
+        return to_decimal(current)
 
     raise ValueError('Either power/voltage or current must be provided')
 
@@ -143,21 +167,34 @@ def get_utilization_level(utilization: Decimal) -> Dict[str, str]:
 
 def calculate_usable_current(max_ampacity: Decimal, usage_type: str = USAGE_TYPE_NORMAL_HOUSEHOLD) -> Decimal:
     """Compute the allowed current for the selected usage type."""
-    return Decimal(max_ampacity) * get_safety_factor(usage_type)
+    current = to_decimal(max_ampacity)
+    assert_decimal(current, 'max_ampacity')
+    return current * get_safety_factor(usage_type)
 
 
 def calculate_usable_power(voltage: Decimal, usable_current: Decimal) -> Decimal:
     """Compute usable power from voltage and allowable current."""
-    return Decimal(voltage) * Decimal(usable_current)
+    voltage_value = to_decimal(voltage)
+    current_value = to_decimal(usable_current)
+    assert_decimal(voltage_value, 'voltage')
+    assert_decimal(current_value, 'usable_current')
+    return voltage_value * current_value
 
 
 def adjusted_current_for_safety(current: Decimal) -> Decimal:
     """Apply safety factor to current."""
-    return Decimal(current) * SAFETY_FACTOR
+    current_value = to_decimal(current)
+    assert_decimal(current_value, 'current')
+    return current_value * SAFETY_FACTOR
 
 
 def calculate_wire_resistance(wire_size_mm2: Decimal, length_m: Decimal) -> Decimal:
     """Calculate copper wire resistance for a given cross-sectional area and length."""
+    wire_size_mm2 = to_decimal(wire_size_mm2)
+    length_m = to_decimal(length_m)
+    assert_decimal(wire_size_mm2, 'wire_size_mm2')
+    assert_decimal(length_m, 'length_m')
+
     if wire_size_mm2 <= 0 or length_m <= 0:
         raise ValueError('Wire size and length must be positive values')
 
@@ -167,35 +204,57 @@ def calculate_wire_resistance(wire_size_mm2: Decimal, length_m: Decimal) -> Deci
 
 def calculate_voltage_drop(current: Decimal, resistance: Decimal) -> Decimal:
     """Compute voltage drop from current and wire resistance."""
-    return Decimal(current) * Decimal(resistance)
+    current_value = to_decimal(current)
+    resistance_value = to_decimal(resistance)
+    assert_decimal(current_value, 'current')
+    assert_decimal(resistance_value, 'resistance')
+    return current_value * resistance_value
 
 
 def calculate_power_loss(current: Decimal, resistance: Decimal) -> Decimal:
     """Compute power loss due to wire resistance."""
-    return Decimal(current) * Decimal(current) * Decimal(resistance)
+    current_value = to_decimal(current)
+    resistance_value = to_decimal(resistance)
+    assert_decimal(current_value, 'current')
+    assert_decimal(resistance_value, 'resistance')
+    return current_value * current_value * resistance_value
 
 
 def calculate_voltage_drop_percent(voltage: Decimal, voltage_drop: Decimal) -> Decimal:
     """Compute voltage drop percentage."""
-    if voltage == 0:
+    voltage_value = to_decimal(voltage)
+    voltage_drop_value = to_decimal(voltage_drop)
+    assert_decimal(voltage_value, 'voltage')
+    assert_decimal(voltage_drop_value, 'voltage_drop')
+    if voltage_value == 0:
         return Decimal('0')
-    return (Decimal(voltage_drop) / Decimal(voltage)) * Decimal('100')
+    return (voltage_drop_value / voltage_value) * Decimal('100')
 
 
 def calculate_efficiency(voltage: Decimal, voltage_drop: Decimal) -> Decimal:
     """Compute efficiency as a percentage of delivered voltage."""
-    if voltage == 0:
+    voltage_value = to_decimal(voltage)
+    voltage_drop_value = to_decimal(voltage_drop)
+    assert_decimal(voltage_value, 'voltage')
+    assert_decimal(voltage_drop_value, 'voltage_drop')
+    if voltage_value == 0:
         return Decimal('0')
-    return ((Decimal(voltage) - Decimal(voltage_drop)) / Decimal(voltage)) * Decimal('100')
+    return ((voltage_value - voltage_drop_value) / voltage_value) * Decimal('100')
 
 
 def calculate_load_voltage(source_voltage: Decimal, voltage_drop: Decimal) -> Decimal:
     """Compute the voltage available at the appliance after wire losses."""
-    return Decimal(source_voltage) - Decimal(voltage_drop)
+    source_voltage_value = to_decimal(source_voltage)
+    voltage_drop_value = to_decimal(voltage_drop)
+    assert_decimal(source_voltage_value, 'source_voltage')
+    assert_decimal(voltage_drop_value, 'voltage_drop')
+    return source_voltage_value - voltage_drop_value
 
 
 def get_voltage_drop_warning(voltage_drop_percent: Decimal) -> Dict[str, str]:
     """Return warning status for voltage drop percentages."""
+    voltage_drop_percent = to_decimal(voltage_drop_percent)
+    assert_decimal(voltage_drop_percent, 'voltage_drop_percent')
     if voltage_drop_percent < Decimal('3'):
         return {'label': 'Excellent', 'badge': 'success'}
     if voltage_drop_percent <= Decimal('5'):
@@ -213,11 +272,25 @@ def recommend_wires_for_current(current: Decimal) -> List[Dict]:
     qs: QuerySet = WireSize.objects.filter(max_ampacity__gte=adj).order_by('wire_size_mm2')
     results = []
     for w in qs:
+        # Build a presentation-friendly capability snapshot for each wire
+        cap = get_wire_capability(wire_size=w)
         results.append({
             'id': w.id,
             'wire_size_mm2': str(w.wire_size_mm2),
-            'max_ampacity': w.max_ampacity,
+            # max_ampacity formatted to 2 decimals
+            'max_ampacity': cap['max_ampacity'],
             'description': w.description,
+            # include key capability values to avoid recomputing in the UI
+            'resistance': cap['resistance'],
+            'voltage_drop': cap['voltage_drop'],
+            'voltage_drop_percent': cap['voltage_drop_percent'],
+            'efficiency': cap['efficiency'],
+            'max_power_theoretical': cap['max_power_theoretical'],
+            'recommended_max_power': cap['recommended_max_power'],
+            'usable_current': cap['usable_current'],
+            'usable_power': cap['usable_power'],
+            'wire_length': cap['wire_length'],
+            'warning': cap['warning'],
         })
     return results
 
@@ -248,44 +321,57 @@ def get_wire_capability(
             raise ValueError('Wire size id is required')
         wire_size = WireSize.objects.get(pk=wire_size_id)
 
-    max_power = Decimal(wire_size.max_ampacity) * ASSUMED_VOLTAGE
-    resistance = calculate_wire_resistance(Decimal(wire_size.wire_size_mm2), wire_length)
-    voltage_drop = calculate_voltage_drop(Decimal(wire_size.max_ampacity), resistance)
+    wire_length = to_decimal(wire_length)
+    assert_decimal(wire_length, 'wire_length')
+    max_ampacity = to_decimal(wire_size.max_ampacity)
+    assert_decimal(max_ampacity, 'wire_size.max_ampacity')
+
+    max_power = max_ampacity * ASSUMED_VOLTAGE
+    resistance = calculate_wire_resistance(to_decimal(wire_size.wire_size_mm2), wire_length)
+    voltage_drop = calculate_voltage_drop(max_ampacity, resistance)
     voltage_drop_percent = calculate_voltage_drop_percent(ASSUMED_VOLTAGE, voltage_drop)
-    power_loss = calculate_power_loss(Decimal(wire_size.max_ampacity), resistance)
+    power_loss = calculate_power_loss(to_decimal(wire_size.max_ampacity), resistance)
     efficiency = calculate_efficiency(ASSUMED_VOLTAGE, voltage_drop)
     load_voltage = calculate_load_voltage(ASSUMED_VOLTAGE, voltage_drop)
     warning = get_voltage_drop_warning(voltage_drop_percent)
     safety_factor = get_safety_factor(usage_type)
-    usable_current = calculate_usable_current(Decimal(wire_size.max_ampacity), usage_type)
+    usable_current = calculate_usable_current(to_decimal(wire_size.max_ampacity), usage_type)
     usable_power = calculate_usable_power(ASSUMED_VOLTAGE, usable_current)
 
+    # Apply output formatting rules (quantize at output boundary):
+    # max_ampacity -> 2 decimals
+    # Voltage values -> 2 decimals
+    # Current values -> 3 decimals
+    # Resistance -> 5 decimals
+    # Power values -> 2 decimals
+    # Percent values -> 2 decimals
+    # Efficiency -> 2 decimals
     return {
         'id': wire_size.id,
         'wire_size_mm2': str(wire_size.wire_size_mm2),
-        'max_ampacity': wire_size.max_ampacity,
-        'max_power_theoretical': max_power.quantize(Decimal('0.01')),
-        'recommended_max_power': usable_power.quantize(Decimal('0.01')),
-        'wire_length': wire_length,
-        'resistance': resistance.quantize(Decimal('0.00001')),
-        'voltage_drop': voltage_drop.quantize(Decimal('0.01')),
-        'voltage_drop_percent': voltage_drop_percent.quantize(Decimal('0.1')),
-        'load_voltage': load_voltage.quantize(Decimal('0.01')),
-        'power_loss': power_loss.quantize(Decimal('0.01')),
-        'efficiency': efficiency.quantize(Decimal('0.1')),
+        'max_ampacity': format_decimal(max_ampacity, 2),
+        'max_power_theoretical': format_decimal(max_power, 2),
+        'recommended_max_power': format_decimal(usable_power, 2),
+        'wire_length': format_decimal(wire_length, 3),
+        'resistance': format_decimal(resistance, 5),
+        'voltage_drop': format_decimal(voltage_drop, 3),
+        'voltage_drop_percent': format_decimal(voltage_drop_percent, 2),
+        'load_voltage': format_decimal(load_voltage, 2),
+        'power_loss': format_decimal(power_loss, 2),
+        'efficiency': format_decimal(efficiency, 2),
         'usage_type': usage_type,
         'usage_label': get_usage_type_label(usage_type),
         'usage_badge': get_usage_type_badge(usage_type),
-        'safety_factor': safety_factor.quantize(Decimal('0.00')),
-        'usable_current': usable_current.quantize(Decimal('0.01')),
-        'usable_power': usable_power.quantize(Decimal('0.01')),
+        'safety_factor': format_decimal(safety_factor, 2),
+        'usable_current': format_decimal(usable_current, 3),
+        'usable_power': format_decimal(usable_power, 2),
         'warning': warning,
     }
 
 
 def get_compatible_appliances(wire_size: WireSize, usage_type: str = USAGE_TYPE_NORMAL_HOUSEHOLD) -> List[Dict]:
     """Return appliances that can safely run on the selected wire size."""
-    usable_current = calculate_usable_current(Decimal(wire_size.max_ampacity), usage_type)
+    usable_current = calculate_usable_current(to_decimal(wire_size.max_ampacity), usage_type)
     appliances = ApplianceLoad.objects.filter(
         estimated_current__lte=usable_current
     ).order_by('estimated_current')
@@ -318,7 +404,7 @@ def generate_safe_combinations(
     max_combinations: int = 5
 ) -> List[Dict]:
     """Generate safe appliance combinations using deterministic utilization targets."""
-    usable_current = calculate_usable_current(Decimal(wire_size.max_ampacity), usage_type)
+    usable_current = calculate_usable_current(to_decimal(wire_size.max_ampacity), usage_type)
     appliances = list(ApplianceLoad.objects.filter(
         estimated_current__lte=usable_current
     ).order_by('-estimated_current'))
@@ -326,7 +412,7 @@ def generate_safe_combinations(
     if not appliances:
         return []
 
-    max_ampacity = Decimal(wire_size.max_ampacity)
+    max_ampacity = to_decimal(wire_size.max_ampacity)
     usable_limit = usable_current
     results = []
 
@@ -336,44 +422,44 @@ def generate_safe_combinations(
         combo_current = Decimal('0')
 
         for appliance in appliances:
-            ap_current = Decimal(appliance.estimated_current or 0)
+            ap_current = to_decimal(appliance.estimated_current or 0)
             if combo_current + ap_current <= target_current:
                 combo_items.append(appliance)
                 combo_current += ap_current
 
         if not combo_items:
-            fallback = next((ap for ap in reversed(appliances) if Decimal(ap.estimated_current or 0) <= usable_limit), None)
+            fallback = next((ap for ap in reversed(appliances) if to_decimal(ap.estimated_current or 0) <= usable_limit), None)
             if fallback:
                 combo_items = [fallback]
-                combo_current = Decimal(fallback.estimated_current or 0)
+                combo_current = to_decimal(fallback.estimated_current or 0)
 
-        total_power = sum((Decimal(ap.power_watts or 0) for ap in combo_items), Decimal('0'))
-        total_voltage = sum((Decimal(ap.voltage or 0) for ap in combo_items), Decimal('0'))
+        total_power = sum((to_decimal(ap.power_watts or 0) for ap in combo_items), Decimal('0'))
+        total_voltage = sum((to_decimal(ap.voltage or 0) for ap in combo_items), Decimal('0'))
         average_voltage = (total_voltage / len(combo_items)) if combo_items else Decimal('0')
         utilization = (combo_current / usable_limit * Decimal('100')) if usable_limit else Decimal('0')
 
         appliances_data = []
-        for appliance in sorted(combo_items, key=lambda ap: Decimal(ap.estimated_current or 0), reverse=True):
-            current = Decimal(appliance.estimated_current or 0)
+        for appliance in sorted(combo_items, key=lambda ap: to_decimal(ap.estimated_current or 0), reverse=True):
+            current = to_decimal(appliance.estimated_current or 0)
             contribution_percent = (current / combo_current * Decimal('100')) if combo_current else Decimal('0')
             appliances_data.append({
                 'name': appliance.name,
-                'power_watts': appliance.power_watts,
-                'voltage': appliance.voltage,
-                'current_amps': current.quantize(Decimal('0.01')),
-                'contribution_percent': contribution_percent.quantize(Decimal('0.1')),
+                'power_watts': format_decimal(appliance.power_watts, 2),
+                'voltage': format_decimal(appliance.voltage, 3),
+                'current_amps': format_decimal(current, 3),
+                'contribution_percent': format_decimal(contribution_percent, 2),
             })
 
         level_info = next((item for item in SAFE_COMBINATION_LEVELS if item['level'] == level), SAFE_COMBINATION_LEVELS[-1])
         results.append({
             'appliances': appliances_data,
             'device_count': len(combo_items),
-            'total_current': combo_current.quantize(Decimal('0.01')),
-            'total_power': total_power.quantize(Decimal('0.01')),
-            'average_voltage': average_voltage.quantize(Decimal('0.1')),
-            'utilization': utilization.quantize(Decimal('0.1')),
-            'wire_limit': max_ampacity,
-            'usable_limit': usable_limit.quantize(Decimal('0.01')),
+            'total_current': format_decimal(combo_current, 3),
+            'total_power': format_decimal(total_power, 2),
+            'average_voltage': format_decimal(average_voltage, 3),
+            'utilization': format_decimal(utilization, 2),
+            'wire_limit': format_decimal(max_ampacity, 3),
+            'usable_limit': format_decimal(usable_limit, 3),
             'level': level,
             'level_label': level_info['label'],
             'level_description': level_info['description'],

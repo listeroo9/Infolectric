@@ -3,6 +3,30 @@
 {% block title %}Wire Calculator - Infolectric{% endblock %}
 
 {% block content %}
+{% block extra_css %}
+<style>
+  /* Scoped styles to ensure readable text in the Wire Analysis card only */
+  .wire-analysis-table .card-header,
+  .wire-analysis-table .card-body,
+  .wire-analysis-table .card,
+  .wire-analysis-table td,
+  .wire-analysis-table th,
+  .wire-analysis-table p,
+  .wire-analysis-table small,
+  .wire-analysis-table strong {
+    color: #212529 !important; /* Bootstrap text-dark */
+  }
+
+  .wire-analysis-table .card-header {
+    background-color: #f8f9fa !important; /* keep light header */
+    border-bottom: 1px solid #dee2e6;
+  }
+
+  .wire-analysis-table .card-header h5 {
+    color: #212529 !important;
+  }
+</style>
+{% endblock %}
 <div class="container py-4">
   <!-- HEADER SECTION -->
   <div class="mb-5 pb-3 border-bottom">
@@ -177,7 +201,7 @@
                         </div>
                       {% endif %}
 
-                      <div class="card border-0 shadow-sm mb-4">
+                      <div class="card border-0 shadow-sm mb-4 wire-analysis-table">
                         <div class="card-header bg-light">
                           <h5 class="mb-0">Wire Analysis</h5>
                         </div>

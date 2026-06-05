@@ -115,47 +115,51 @@ class WireCalculatorForm(forms.Form):
     power_watts = forms.DecimalField(
         label='Power (Watts)',
         required=False,
-        min_value=0.01,
+        min_value=Decimal('0.01'),
+        max_digits=10,
         decimal_places=2,
         widget=forms.NumberInput(attrs={
             'class': 'form-control',
             'placeholder': 'Enter power in watts',
-            'step': '0.1'
+            'step': 'any'
         })
     )
     voltage = forms.DecimalField(
         label='Voltage (Volts)',
         required=False,
-        min_value=0.1,
+        min_value=Decimal('0.1'),
+        max_digits=8,
         decimal_places=2,
-        initial=220,
+        initial=Decimal('220.00'),
         widget=forms.NumberInput(attrs={
             'class': 'form-control',
             'placeholder': 'Enter voltage in volts',
-            'step': '0.1'
+            'step': 'any'
         })
     )
     current = forms.DecimalField(
         label='Current (Amps)',
         required=False,
-        min_value=0.01,
-        decimal_places=2,
+        min_value=Decimal('0.01'),
+        max_digits=10,
+        decimal_places=4,
         widget=forms.NumberInput(attrs={
             'class': 'form-control',
             'placeholder': 'Enter current in amperes (optional)',
-            'step': '0.1'
+            'step': 'any'
         })
     )
     wire_length = forms.DecimalField(
         label='Wire Length (meters)',
         required=False,
-        min_value=1,
+        min_value=Decimal('0.01'),
+        initial=Decimal('10.00'),
+        max_digits=10,
         decimal_places=2,
-        initial=10,
         widget=forms.NumberInput(attrs={
             'class': 'form-control',
             'placeholder': 'Enter wire length in meters',
-            'step': '0.1'
+            'step': 'any'
         })
     )
 
@@ -179,11 +183,11 @@ class WireCalculatorForm(forms.Form):
                 cleaned_data['voltage'] = Decimal('220.00')
                 voltage = cleaned_data['voltage']
             try:
-                cleaned_data['calculated_current'] = Decimal(power) / Decimal(voltage)
+                cleaned_data['calculated_current'] = Decimal(str(power)) / Decimal(str(voltage))
             except Exception:
                 raise forms.ValidationError('Power and voltage must be valid numbers.')
         else:
-            cleaned_data['calculated_current'] = current
+            cleaned_data['calculated_current'] = Decimal(str(current))
 
         return cleaned_data
 
@@ -207,13 +211,14 @@ class WireExplorerForm(forms.Form):
     wire_length = forms.DecimalField(
         label='Wire Length (meters)',
         required=False,
-        min_value=1,
+        min_value=Decimal('0.01'),
+        initial=Decimal('10.00'),
+        max_digits=10,
         decimal_places=2,
-        initial=10,
         widget=forms.NumberInput(attrs={
             'class': 'form-control',
             'placeholder': 'Enter wire length in meters',
-            'step': '0.1'
+            'step': 'any'
         })
     )
 
@@ -232,8 +237,8 @@ class ApplianceLoadForm(forms.ModelForm):
         fields = ['name', 'voltage', 'power_watts', 'category']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'voltage': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
-            'power_watts': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
+            'voltage': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any'}),
+            'power_watts': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any'}),
             'category': forms.Select(attrs={'class': 'form-select'}),
         }
 

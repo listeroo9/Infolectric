@@ -150,31 +150,35 @@ class WireRecommendationViewSet(viewsets.ViewSet):
                     status=status.HTTP_404_NOT_FOUND
                 )
 
-            wire_serializer = WireSizeSerializer(wire_sizes, many=True)
-            selected_wire_size = Decimal(wire_sizes.first().wire_size_mm2)
-            resistance = services.calculate_wire_resistance(selected_wire_size, wire_length)
-            voltage_drop = services.calculate_voltage_drop(required_current, resistance)
-            voltage_drop_percent = services.calculate_voltage_drop_percent(Decimal('220'), voltage_drop)
-            power_loss = services.calculate_power_loss(required_current, resistance)
-            efficiency = services.calculate_efficiency(Decimal('220'), voltage_drop)
-            usable_current = services.calculate_usable_current(Decimal(wire_sizes.first().max_ampacity), usage_type)
-            usable_power = services.calculate_usable_power(Decimal('220'), usable_current)
-            safety_factor = services.get_safety_factor(usage_type)
 
-            return Response({
-                'required_current': required_current,
-                'usage_type': usage_type,
-                'safety_factor': safety_factor.quantize(Decimal('0.00')),
-                'adjusted_current': adjusted_current,
-                'usable_current': usable_current.quantize(Decimal('0.01')),
-                'usable_power': usable_power.quantize(Decimal('0.01')),
-                'wire_length': wire_length,
-                'voltage_drop': voltage_drop.quantize(Decimal('0.01')),
-                'voltage_drop_percent': voltage_drop_percent.quantize(Decimal('0.01')),
-                'power_loss': power_loss.quantize(Decimal('0.01')),
-                'efficiency': efficiency.quantize(Decimal('0.01')),
-                'recommendations': wire_serializer.data
-            })
+                # Use service to build formatted recommendations and capability numbers
+                recommendations = services.recommend_wires_for_current(required_current)
+                # pick first for summary metrics
+                first = recommendations[0]
+                selected_wire_size = Decimal(first['wire_size_mm2'])
+                resistance = services.calculate_wire_resistance(selected_wire_size, wire_length)
+                vdrop = services.calculate_voltage_drop(required_current, resistance)
+                voltage_drop = services.format_decimal(vdrop, 3)
+                voltage_drop_percent = services.format_decimal(services.calculate_voltage_drop_percent(Decimal('220'), vdrop), 2)
+                power_loss = services.format_decimal(services.calculate_power_loss(required_current, resistance), 2)
+                efficiency = services.format_decimal(services.calculate_efficiency(Decimal('220'), vdrop), 2)
+                usable_current = services.calculate_usable_current(Decimal(first['max_ampacity']), usage_type)
+                usable_power = services.format_decimal(services.calculate_usable_power(Decimal('220'), usable_current), 2)
+
+                return Response({
+                    'required_current': services.format_decimal(required_current, 3),
+                    'usage_type': usage_type,
+                    'safety_factor': services.format_decimal(safety_factor, 2),
+                    'adjusted_current': services.format_decimal(adjusted_current, 3),
+                    'usable_current': services.format_decimal(usable_current, 2),
+                    'usable_power': usable_power,
+                    'wire_length': services.format_decimal(wire_length, 2),
+                    'voltage_drop': voltage_drop,
+                    'voltage_drop_percent': voltage_drop_percent,
+                    'power_loss': power_loss,
+                    'efficiency': efficiency,
+                    'recommendations': recommendations
+                })
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -232,17 +236,17 @@ class PowerCalcViewSet(viewsets.ViewSet):
                 usable_power = services.calculate_usable_power(voltage or Decimal('220'), usable_current)
 
             out = {
-                'power_watts': power,
-                'voltage': voltage,
-                'current': current,
+                'power_watts': services.format_decimal(services.to_decimal(power) if power is not None else Decimal('0'), 2) if power is not None else None,
+                'voltage': services.format_decimal(services.to_decimal(voltage) if voltage is not None else Decimal('220'), 2),
+                'current': services.format_decimal(services.to_decimal(current) if current is not None else None, 3) if current is not None else None,
                 'usage_type': usage_type,
-                'safety_factor': safety_factor.quantize(Decimal('0.00')),
-                'wire_length': wire_length,
-                'computed_current': calculated_current,
-                'adjusted_current': adjusted_current,
-                'usable_current': usable_current.quantize(Decimal('0.01')) if usable_current is not None else None,
-                'usable_power': usable_power.quantize(Decimal('0.01')) if usable_power is not None else None,
-                'wire_resistance': wire_resistance,
+                'safety_factor': services.format_decimal(safety_factor, 2),
+                'wire_length': services.format_decimal(wire_length, 2),
+                'computed_current': services.format_decimal(calculated_current, 3),
+                'adjusted_current': services.format_decimal(adjusted_current, 3),
+                'usable_current': services.format_decimal(usable_current, 2) if usable_current is not None else None,
+                'usable_power': services.format_decimal(usable_power, 2) if usable_power is not None else None,
+                'wire_resistance': services.format_decimal(wire_resistance, 5) if wire_resistance is not None else None,
                 'voltage_drop': voltage_drop,
                 'voltage_drop_percent': voltage_drop_percent,
                 'power_loss': power_loss,
@@ -312,9 +316,9 @@ class ProjectBuilderViewSet(viewsets.ViewSet):
         if not appliances.exists():
             return Response({'error': 'No appliances found for given ids'}, status=status.HTTP_404_NOT_FOUND)
 
-        total_power = sum([float(a.power_watts or 0) for a in appliances])
+        total_power = sum((services.to_decimal(a.power_watts or 0) for a in appliances), Decimal('0'))
         # use default voltage from first appliance if present, otherwise 230
-        voltage = float(appliances.first().voltage or 230)
+        voltage = services.to_decimal(appliances.first().voltage or Decimal('230'))
         try:
             total_current = services.power_to_current(total_power, voltage)
         except ValueError as exc:

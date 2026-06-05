@@ -55,13 +55,13 @@ class WireSizeSerializer(serializers.ModelSerializer):
 
 class WireRecommendationSerializer(serializers.Serializer):
     """Serializer for wire recommendation calculator request/response."""
-    required_current = serializers.DecimalField(max_digits=6, decimal_places=2)
+    required_current = serializers.DecimalField(max_digits=10, decimal_places=4)
     usage_type = serializers.ChoiceField(
         choices=services.USAGE_TYPE_CHOICES,
         required=False,
         default=services.USAGE_TYPE_NORMAL_HOUSEHOLD
     )
-    wire_length = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=Decimal('10.00'))
+    wire_length = serializers.DecimalField(required=False, max_digits=10, decimal_places=2, default=Decimal('10.00'))
     wire_resistance = serializers.DecimalField(max_digits=12, decimal_places=6, read_only=True)
     voltage_drop = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     voltage_drop_percent = serializers.DecimalField(max_digits=5, decimal_places=2, read_only=True)
@@ -80,7 +80,7 @@ class WireExplorerRequestSerializer(serializers.Serializer):
         required=False,
         default=services.USAGE_TYPE_NORMAL_HOUSEHOLD
     )
-    wire_length = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=Decimal('10.00'))
+    wire_length = serializers.DecimalField(required=False, max_digits=10, decimal_places=2, default=Decimal('10.00'))
 
 
 class WireExplorerApplianceSerializer(serializers.ModelSerializer):
@@ -145,15 +145,15 @@ class ApplianceLoadSerializer(serializers.ModelSerializer):
 
 
 class PowerToCurrentSerializer(serializers.Serializer):
-    power_watts = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
-    voltage = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, default=Decimal('220.00'))
-    current = serializers.DecimalField(max_digits=10, decimal_places=4, required=False)
+    power_watts = serializers.DecimalField(required=False, max_digits=10, decimal_places=2)
+    voltage = serializers.DecimalField(required=False, max_digits=8, decimal_places=2, default=Decimal('220.00'))
+    current = serializers.DecimalField(required=False, max_digits=10, decimal_places=4)
     usage_type = serializers.ChoiceField(
         choices=services.USAGE_TYPE_CHOICES,
         required=False,
         default=services.USAGE_TYPE_NORMAL_HOUSEHOLD
     )
-    wire_length = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=Decimal('10.00'))
+    wire_length = serializers.DecimalField(required=False, max_digits=10, decimal_places=2, default=Decimal('10.00'))
     computed_current = serializers.DecimalField(max_digits=10, decimal_places=4, read_only=True)
     adjusted_current = serializers.DecimalField(max_digits=10, decimal_places=4, read_only=True)
     wire_resistance = serializers.DecimalField(max_digits=12, decimal_places=6, read_only=True)
