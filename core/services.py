@@ -3,11 +3,12 @@ Calculation services for Infolectric.
 Contains power->current conversion, adjusted current and wire recommendation logic.
 """
 from decimal import Decimal, InvalidOperation
-from typing import List, Dict
+from itertools import combinations
+from typing import List, Dict, Optional
 
 from django.db.models import QuerySet
 
-from .models import WireSize
+from .models import ApplianceLoad, WireSize
 
 
 def power_to_current(power_watts: Decimal, voltage: Decimal) -> Decimal:
@@ -86,3 +87,71 @@ def recommend_breaker_for_current(current: Decimal) -> int:
         if Decimal(b) >= adj:
             return b
     return common[-1]
+
+
+def get_wire_capability(wire_size_id: Optional[int] = None, wire_size: Optional[WireSize] = None) -> Dict:
+    """Return wire capability details for explorer mode."""
+    if wire_size is None:
+        if wire_size_id is None:
+            raise ValueError('Wire size id is required')
+        wire_size = WireSize.objects.get(pk=wire_size_id)
+
+    max_power = Decimal(wire_size.max_ampacity) * Decimal('220')
+    return {
+        'id': wire_size.id,
+        'wire_size_mm2': str(wire_size.wire_size_mm2),
+        'max_ampacity': wire_size.max_ampacity,
+        'max_power': max_power,
+    }
+
+
+def get_compatible_appliances(wire_size: WireSize) -> List[Dict]:
+    """Return appliances that can safely run on the selected wire size."""
+    appliances = ApplianceLoad.objects.filter(
+        estimated_current__lte=wire_size.max_ampacity
+    ).order_by('estimated_current')
+
+    results = []
+    for appliance in appliances:
+        results.append({
+            'id': appliance.id,
+            'name': appliance.name,
+            'category': appliance.category.name if appliance.category else None,
+            'power_watts': appliance.power_watts,
+            'voltage': appliance.voltage,
+            'estimated_current': appliance.estimated_current,
+        })
+    return results
+
+
+def generate_safe_combinations(wire_size: WireSize, max_combinations: int = 5) -> List[Dict]:
+    """Generate safe appliance combinations for the selected wire size."""
+    appliances = list(ApplianceLoad.objects.filter(
+        estimated_current__lte=wire_size.max_ampacity
+    ).order_by('estimated_current'))
+
+    results = []
+    max_ampacity = Decimal(wire_size.max_ampacity)
+
+    # Try larger combinations first, then smaller.
+    for combination_size in (3, 2, 1):
+        if len(results) >= max_combinations:
+            break
+        for combo in combinations(appliances, combination_size):
+            total_current = sum((Decimal(ap.estimated_current or 0) for ap in combo), Decimal('0'))
+            if total_current <= max_ampacity:
+                utilization = (total_current / max_ampacity) * Decimal('100') if max_ampacity else Decimal('0')
+                results.append({
+                    'appliances': [appliance.name for appliance in combo],
+                    'total_current': total_current.quantize(Decimal('0.01')),
+                    'utilization': utilization.quantize(Decimal('0.1')),
+                    'wire_limit': max_ampacity,
+                    'is_safe': True,
+                })
+                if len(results) >= max_combinations:
+                    break
+        if len(results) >= max_combinations:
+            break
+
+    results.sort(key=lambda item: item['utilization'], reverse=True)
+    return results

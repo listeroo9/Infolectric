@@ -6,14 +6,15 @@ RESTful API endpoints for components, categories, wire sizes, and calculator.
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import Component, Category, WireSize
+from .models import Component, Category, WireSize, ApplianceLoad
 from .serializers import (
     ComponentSerializer, CategorySerializer, WireSizeSerializer,
-    WireRecommendationSerializer
+    WireRecommendationSerializer, ApplianceLoadSerializer,
+    PowerToCurrentSerializer, ProjectBuilderOutputSerializer,
+    WireExplorerRequestSerializer, WireExplorerSerializer
 )
-from .serializers import ApplianceLoadSerializer, PowerToCurrentSerializer, ProjectBuilderOutputSerializer
-from .models import ApplianceLoad
 from . import services
 
 
@@ -196,6 +197,31 @@ class PowerCalcViewSet(viewsets.ViewSet):
                 'recommendations': recommendations,
             }
             return Response(out)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class WireExplorerViewSet(viewsets.ViewSet):
+    """API endpoint for wire explorer capability and safe appliance matching."""
+
+    def create(self, request):
+        serializer = WireExplorerRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            wire_size_id = serializer.validated_data['wire_size_id']
+            wire_size = get_object_or_404(WireSize, pk=wire_size_id)
+            capability = services.get_wire_capability(wire_size=wire_size)
+            compatible_appliances = services.get_compatible_appliances(wire_size)
+            safe_combinations = services.generate_safe_combinations(wire_size)
+
+            response_data = {
+                'wire_size': capability['wire_size_mm2'],
+                'max_ampacity': capability['max_ampacity'],
+                'max_power': capability['max_power'],
+                'compatible_appliances': compatible_appliances,
+                'safe_combinations': safe_combinations,
+            }
+            output_serializer = WireExplorerSerializer(response_data)
+            return Response(output_serializer.data)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

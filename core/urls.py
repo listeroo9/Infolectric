@@ -18,6 +18,7 @@ router.register(r'categories', api_views.CategoryViewSet, basename='api-category
 router.register(r'components', api_views.ComponentViewSet, basename='api-component')
 router.register(r'wire-sizes', api_views.WireSizeViewSet, basename='api-wiresize')
 router.register(r'wire-recommendation', api_views.WireRecommendationViewSet, basename='api-wire-recommendation')
+router.register(r'wire-explorer', api_views.WireExplorerViewSet, basename='api-wire-explorer')
 router.register(r'appliances', api_views.ApplianceLoadViewSet, basename='api-appliance')
 router.register(r'power', api_views.PowerCalcViewSet, basename='api-power')
 router.register(r'project-builder', api_views.ProjectBuilderViewSet, basename='api-project-builder')

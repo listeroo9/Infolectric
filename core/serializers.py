@@ -58,6 +58,35 @@ class WireRecommendationSerializer(serializers.Serializer):
     recommendations = WireSizeSerializer(many=True, read_only=True)
 
 
+class WireExplorerRequestSerializer(serializers.Serializer):
+    wire_size_id = serializers.IntegerField()
+
+
+class WireExplorerApplianceSerializer(serializers.ModelSerializer):
+    category = serializers.CharField(source='category.name', read_only=True)
+
+    class Meta:
+        model = ApplianceLoad
+        fields = ['id', 'name', 'category', 'power_watts', 'voltage', 'estimated_current']
+        read_only_fields = ['id', 'name', 'category', 'power_watts', 'voltage', 'estimated_current']
+
+
+class WireExplorerCombinationSerializer(serializers.Serializer):
+    appliances = serializers.ListField(child=serializers.CharField())
+    total_current = serializers.DecimalField(max_digits=10, decimal_places=2)
+    utilization = serializers.DecimalField(max_digits=5, decimal_places=1)
+    wire_limit = serializers.DecimalField(max_digits=10, decimal_places=2)
+    is_safe = serializers.BooleanField()
+
+
+class WireExplorerSerializer(serializers.Serializer):
+    wire_size = serializers.CharField()
+    max_ampacity = serializers.IntegerField()
+    max_power = serializers.DecimalField(max_digits=12, decimal_places=2)
+    compatible_appliances = WireExplorerApplianceSerializer(many=True)
+    safe_combinations = WireExplorerCombinationSerializer(many=True)
+
+
 class ApplianceLoadSerializer(serializers.ModelSerializer):
     class Meta:
         model = ApplianceLoad

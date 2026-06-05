@@ -10,189 +10,347 @@
     <p class="text-muted">Find the perfect wire size for your electrical application</p>
   </div>
 
-  <!-- CALCULATOR FORM SECTION -->
+  <!-- CALCULATOR SECTION -->
   <div class="row mb-5">
     <div class="col-12">
       <div class="card shadow-sm">
-        <div class="card-header bg-success">
-          <h5 class="mb-0">Calculator</h5>
-        </div>
         <div class="card-body p-4">
-          <form method="post">
-            {% csrf_token %}
-            
-            {% if form.non_field_errors %}
-              <div class="alert alert-danger" role="alert">
-                {% for error in form.non_field_errors %}
-                  {{ error }}
-                {% endfor %}
-              </div>
-            {% endif %}
+          <ul class="nav nav-tabs mb-4" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link {% if active_tab == 'recommendation' %}active{% endif %}" id="recommendation-tab-button" data-bs-toggle="tab" data-bs-target="#recommendation-tab" type="button" role="tab" aria-controls="recommendation-tab" aria-selected="{% if active_tab == 'recommendation' %}true{% else %}false{% endif %}">
+                Wire Recommendation
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link {% if active_tab == 'explorer' %}active{% endif %}" id="explorer-tab-button" data-bs-toggle="tab" data-bs-target="#explorer-tab" type="button" role="tab" aria-controls="explorer-tab" aria-selected="{% if active_tab == 'explorer' %}true{% else %}false{% endif %}">
+                Wire Explorer
+              </button>
+            </li>
+          </ul>
 
-            <!-- Electrical Inputs Group -->
-            <fieldset class="mb-4 pb-4 border-bottom">
-              <legend class="fs-6 fw-bold mb-3">Electrical Inputs</legend>
-              
-              <div class="mb-3">
-                <label for="{{ form.power_watts.id_for_label }}" class="form-label">
-                  <strong>{{ form.power_watts.label }}</strong>
-                </label>
-                {{ form.power_watts }}
-                <small class="form-text text-muted d-block mt-2">
-                  Enter power in watts. Use this with voltage to calculate current automatically.
-                </small>
-                {% if form.power_watts.errors %}
-                  <div class="invalid-feedback d-block">
-                    {% for error in form.power_watts.errors %}
-                      {{ error }}
-                    {% endfor %}
+          <div class="tab-content">
+            <div class="tab-pane fade {% if active_tab == 'recommendation' %}show active{% endif %}" id="recommendation-tab" role="tabpanel" aria-labelledby="recommendation-tab-button">
+              <div class="card border-0 mb-4">
+                <div class="card-header bg-success">
+                  <h5 class="mb-0">Calculator</h5>
+                </div>
+                <div class="card-body p-4">
+                  <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="active_tab" value="recommendation">
+
+                    {% if form.non_field_errors %}
+                      <div class="alert alert-danger" role="alert">
+                        {% for error in form.non_field_errors %}
+                          {{ error }}
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+
+                    <!-- Electrical Inputs Group -->
+                    <fieldset class="mb-4 pb-4 border-bottom">
+                      <legend class="fs-6 fw-bold mb-3">Electrical Inputs</legend>
+
+                      <div class="mb-3">
+                        <label for="{{ form.power_watts.id_for_label }}" class="form-label">
+                          <strong>{{ form.power_watts.label }}</strong>
+                        </label>
+                        {{ form.power_watts }}
+                        <small class="form-text text-muted d-block mt-2">
+                          Enter power in watts. Use this with voltage to calculate current automatically.
+                        </small>
+                        {% if form.power_watts.errors %}
+                          <div class="invalid-feedback d-block">
+                            {% for error in form.power_watts.errors %}
+                              {{ error }}
+                            {% endfor %}
+                          </div>
+                        {% endif %}
+                      </div>
+
+                      <div class="mb-0">
+                        <label for="{{ form.voltage.id_for_label }}" class="form-label">
+                          <strong>{{ form.voltage.label }}</strong>
+                        </label>
+                        {{ form.voltage }}
+                        <small class="form-text text-muted d-block mt-2">
+                          Default is 220V. Leave blank only if you are providing current directly.
+                        </small>
+                        {% if form.voltage.errors %}
+                          <div class="invalid-feedback d-block">
+                            {% for error in form.voltage.errors %}
+                              {{ error }}
+                            {% endfor %}
+                          </div>
+                        {% endif %}
+                      </div>
+                    </fieldset>
+
+                    <!-- Advanced Input Group -->
+                    <fieldset class="mb-4">
+                      <legend class="fs-6 fw-bold mb-3">Advanced Input</legend>
+
+                      <div class="mb-0">
+                        <label for="{{ form.current.id_for_label }}" class="form-label">
+                          <strong>{{ form.current.label }}</strong>
+                        </label>
+                        {{ form.current }}
+                        <small class="form-text text-muted d-block mt-2">
+                          Optional: provide current directly if you already know the circuit amperage.
+                        </small>
+                        {% if form.current.errors %}
+                          <div class="invalid-feedback d-block">
+                            {% for error in form.current.errors %}
+                              {{ error }}
+                            {% endfor %}
+                          </div>
+                        {% endif %}
+                      </div>
+                    </fieldset>
+
+                    <button type="submit" class="btn btn-success btn-lg w-100">
+                      <i class="fas fa-arrow-right"></i> Calculate Recommendations
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+              {% if error_message and active_tab == 'recommendation' %}
+                <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                  <i class="fas fa-exclamation-circle"></i> {{ error_message }}
+                  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+              {% endif %}
+
+              {% if recommendations %}
+                <div class="card shadow-sm mb-4">
+                  <div class="card-header bg-success">
+                    <h5 class="mb-0">
+                      <i class="fas fa-check-circle"></i> Recommended Wire Sizes
+                    </h5>
                   </div>
-                {% endif %}
-              </div>
+                  <div class="card-body p-4">
+                    {% if result %}
+                      <div class="row mb-4 pb-4 border-bottom">
+                        <div class="col-md-3 mb-3 mb-md-0">
+                          <small class="text-muted d-block">Power</small>
+                          <strong class="fs-5">{{ result.power_watts|default:'N/A' }} W</strong>
+                        </div>
+                        <div class="col-md-3 mb-3 mb-md-0">
+                          <small class="text-muted d-block">Voltage</small>
+                          <strong class="fs-5">{{ result.voltage|default:'220' }} V</strong>
+                        </div>
+                        <div class="col-md-3 mb-3 mb-md-0">
+                          <small class="text-muted d-block">Computed Current</small>
+                          <strong class="fs-5">{{ result.current }} A</strong>
+                        </div>
+                        <div class="col-md-3">
+                          <small class="text-muted d-block">Adjusted Current</small>
+                          <strong class="fs-5">{{ result.adjusted_current }} A</strong>
+                        </div>
+                      </div>
+                    {% endif %}
 
-              <div class="mb-0">
-                <label for="{{ form.voltage.id_for_label }}" class="form-label">
-                  <strong>{{ form.voltage.label }}</strong>
-                </label>
-                {{ form.voltage }}
-                <small class="form-text text-muted d-block mt-2">
-                  Default is 220V. Leave blank only if you are providing current directly.
-                </small>
-                {% if form.voltage.errors %}
-                  <div class="invalid-feedback d-block">
-                    {% for error in form.voltage.errors %}
-                      {{ error }}
-                    {% endfor %}
+                    {% if used_current_mode %}
+                      <div class="alert alert-secondary mb-4">
+                        <strong>Tip:</strong> Use Power + Voltage for more accurate calculations, but direct current input still works.
+                      </div>
+                    {% endif %}
+
+                    <p class="mb-4">
+                      The following wire sizes meet the adjusted current requirement:
+                    </p>
+
+                    <div class="row g-3">
+                      {% for wire in recommendations %}
+                        <div class="col-md-6">
+                          <div class="card h-100 border-start border-success border-4">
+                            <div class="card-body">
+                              <div class="row mb-3">
+                                <div class="col-6">
+                                  <small class="text-muted d-block">Wire Size</small>
+                                  <p class="fs-5 fw-bold text-primary mb-0">{{ wire.wire_size_mm2 }} mm²</p>
+                                </div>
+                                <div class="col-6">
+                                  <small class="text-muted d-block">Max Ampacity</small>
+                                  <p class="fs-5 fw-bold text-success mb-0">{{ wire.max_ampacity }} A</p>
+                                </div>
+                              </div>
+                              {% if wire.description %}
+                                <hr class="my-2">
+                                <small class="text-muted d-block mb-2">
+                                  <strong>Application:</strong> {{ wire.description }}
+                                </small>
+                              {% endif %}
+                              <a href="{% url 'core:wiresize-detail' wire.id %}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-arrow-right"></i> View Details
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      {% endfor %}
+                    </div>
+
+                    <div class="alert alert-info mt-4">
+                      <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Choose the wire size that best fits your application. 
+                      Larger sizes provide more safety margin but cost more. Consider temperature, installation method, 
+                      and local electrical codes.
+                    </div>
                   </div>
-                {% endif %}
-              </div>
-            </fieldset>
+                </div>
+              {% endif %}
+            </div>
 
-            <!-- Advanced Input Group -->
-            <fieldset class="mb-4">
-              <legend class="fs-6 fw-bold mb-3">Advanced Input</legend>
-              
-              <div class="mb-0">
-                <label for="{{ form.current.id_for_label }}" class="form-label">
-                  <strong>{{ form.current.label }}</strong>
-                </label>
-                {{ form.current }}
-                <small class="form-text text-muted d-block mt-2">
-                  Optional: provide current directly if you already know the circuit amperage.
-                </small>
-                {% if form.current.errors %}
-                  <div class="invalid-feedback d-block">
-                    {% for error in form.current.errors %}
-                      {{ error }}
-                    {% endfor %}
+            <div class="tab-pane fade {% if active_tab == 'explorer' %}show active{% endif %}" id="explorer-tab" role="tabpanel" aria-labelledby="explorer-tab-button">
+              <div class="card border-0 mb-4">
+                <div class="card-header bg-success">
+                  <h5 class="mb-0">Wire Explorer</h5>
+                </div>
+                <div class="card-body p-4">
+                  <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="active_tab" value="explorer">
+
+                    <div class="mb-3">
+                      <label for="{{ explorer_form.wire_size.id_for_label }}" class="form-label">
+                        <strong>{{ explorer_form.wire_size.label }}</strong>
+                      </label>
+                      {{ explorer_form.wire_size }}
+                      {% if explorer_form.wire_size.errors %}
+                        <div class="invalid-feedback d-block">
+                          {% for error in explorer_form.wire_size.errors %}
+                            {{ error }}
+                          {% endfor %}
+                        </div>
+                      {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-success btn-lg w-100">
+                      <i class="fas fa-search"></i> Explore Wire Capability
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+              {% if error_message and active_tab == 'explorer' %}
+                <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                  <i class="fas fa-exclamation-circle"></i> {{ error_message }}
+                  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+              {% endif %}
+
+              {% if explorer_results %}
+                <div class="row mb-4">
+                  <div class="col-12">
+                    <div class="card shadow-sm">
+                      <div class="card-body p-4">
+                        <h5 class="mb-3">Wire Capability</h5>
+                        <div class="row">
+                          <div class="col-md-3 mb-3 mb-md-0">
+                            <small class="text-muted d-block">Wire Size</small>
+                            <strong class="fs-5">{{ explorer_results.capability.wire_size_mm2 }} mm²</strong>
+                          </div>
+                          <div class="col-md-3 mb-3 mb-md-0">
+                            <small class="text-muted d-block">Max Ampacity</small>
+                            <strong class="fs-5">{{ explorer_results.capability.max_ampacity }} A</strong>
+                          </div>
+                          <div class="col-md-3 mb-3 mb-md-0">
+                            <small class="text-muted d-block">Assumed Voltage</small>
+                            <strong class="fs-5">220 V</strong>
+                          </div>
+                          <div class="col-md-3">
+                            <small class="text-muted d-block">Maximum Power</small>
+                            <strong class="fs-5">{{ explorer_results.capability.max_power }} W</strong>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                {% endif %}
-              </div>
-            </fieldset>
+                </div>
 
-            <button type="submit" class="btn btn-success btn-lg w-100">
-              <i class="fas fa-arrow-right"></i> Calculate Recommendations
-            </button>
-          </form>
+                <div class="row mb-4">
+                  <div class="col-12">
+                    <div class="card shadow-sm">
+                      <div class="card-header bg-success">
+                        <h5 class="mb-0">Compatible Appliances <span class="badge bg-light text-dark ms-2">{{ explorer_results.compatible_count }}</span></h5>
+                      </div>
+                      <div class="card-body p-4">
+                        {% if explorer_results.compatible_appliances %}
+                          <div class="table-responsive">
+                            <table class="table table-striped mb-0">
+                              <thead>
+                                <tr>
+                                  <th>Name</th>
+                                  <th>Category</th>
+                                  <th>Power (W)</th>
+                                  <th>Voltage (V)</th>
+                                  <th>Current (A)</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {% for appliance in explorer_results.compatible_appliances %}
+                                  <tr>
+                                    <td>{{ appliance.name }}</td>
+                                    <td>{{ appliance.category|default:'—' }}</td>
+                                    <td>{{ appliance.power_watts }}</td>
+                                    <td>{{ appliance.voltage }}</td>
+                                    <td>{{ appliance.estimated_current }}</td>
+                                  </tr>
+                                {% endfor %}
+                              </tbody>
+                            </table>
+                          </div>
+                        {% else %}
+                          <p class="mb-0">No compatible appliances were found for this wire size.</p>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row mb-4">
+                  <div class="col-12">
+                    <div class="card shadow-sm">
+                      <div class="card-header bg-success">
+                        <h5 class="mb-0">Safe Appliance Combinations</h5>
+                      </div>
+                      <div class="card-body p-4">
+                        {% if explorer_results.safe_combinations %}
+                          <div class="row g-3">
+                            {% for combo in explorer_results.safe_combinations %}
+                              <div class="col-12 col-lg-6">
+                                <div class="card h-100 border-start border-primary border-4">
+                                  <div class="card-body">
+                                    <h6 class="mb-2">Combination #{{ forloop.counter }}</h6>
+                                    <ul class="mb-3 ps-3">
+                                      {% for appliance in combo.appliances %}
+                                        <li>{{ appliance }}</li>
+                                      {% endfor %}
+                                    </ul>
+                                    <p class="mb-1"><strong>Total Current:</strong> {{ combo.total_current }} A</p>
+                                    <p class="mb-1"><strong>Wire Limit:</strong> {{ combo.wire_limit }} A</p>
+                                    <p class="mb-0"><strong>Utilization:</strong> {{ combo.utilization }}%</p>
+                                  </div>
+                                </div>
+                              </div>
+                            {% endfor %}
+                          </div>
+                        {% else %}
+                          <p class="mb-0">No safe combinations could be generated with the current compatible appliances.</p>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ERROR MESSAGE SECTION -->
-  {% if error_message %}
-    <div class="row mb-5">
-      <div class="col-12">
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-          <i class="fas fa-exclamation-circle"></i> {{ error_message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-      </div>
-    </div>
-  {% endif %}
-
-  <!-- RESULTS SECTION -->
-  {% if recommendations %}
-    <div class="row mb-5">
-      <div class="col-12">
-        <div class="card shadow-sm">
-          <div class="card-header bg-success">
-            <h5 class="mb-0">
-              <i class="fas fa-check-circle"></i> Recommended Wire Sizes
-            </h5>
-          </div>
-          <div class="card-body p-4">
-            {% if result %}
-              <div class="row mb-4 pb-4 border-bottom">
-                <div class="col-md-3 mb-3 mb-md-0">
-                  <small class="text-muted d-block">Power</small>
-                  <strong class="fs-5">{{ result.power_watts|default:'N/A' }} W</strong>
-                </div>
-                <div class="col-md-3 mb-3 mb-md-0">
-                  <small class="text-muted d-block">Voltage</small>
-                  <strong class="fs-5">{{ result.voltage|default:'220' }} V</strong>
-                </div>
-                <div class="col-md-3 mb-3 mb-md-0">
-                  <small class="text-muted d-block">Computed Current</small>
-                  <strong class="fs-5">{{ result.current }} A</strong>
-                </div>
-                <div class="col-md-3">
-                  <small class="text-muted d-block">Adjusted Current</small>
-                  <strong class="fs-5">{{ result.adjusted_current }} A</strong>
-                </div>
-              </div>
-            {% endif %}
-
-            {% if used_current_mode %}
-              <div class="alert alert-secondary mb-4">
-                <strong>Tip:</strong> Use Power + Voltage for more accurate calculations, but direct current input still works.
-              </div>
-            {% endif %}
-
-            <p class="mb-4">
-              The following wire sizes meet the adjusted current requirement:
-            </p>
-
-            <div class="row g-3">
-              {% for wire in recommendations %}
-                <div class="col-md-6">
-                  <div class="card h-100 border-start border-success border-4">
-                    <div class="card-body">
-                      <div class="row mb-3">
-                        <div class="col-6">
-                          <small class="text-muted d-block">Wire Size</small>
-                          <p class="fs-5 fw-bold text-primary mb-0">{{ wire.wire_size_mm2 }} mm²</p>
-                        </div>
-                        <div class="col-6">
-                          <small class="text-muted d-block">Max Ampacity</small>
-                          <p class="fs-5 fw-bold text-success mb-0">{{ wire.max_ampacity }} A</p>
-                        </div>
-                      </div>
-                      {% if wire.description %}
-                        <hr class="my-2">
-                        <small class="text-muted d-block mb-2">
-                          <strong>Application:</strong> {{ wire.description }}
-                        </small>
-                      {% endif %}
-                      <a href="{% url 'core:wiresize-detail' wire.id %}" class="btn btn-sm btn-primary">
-                        <i class="fas fa-arrow-right"></i> View Details
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              {% endfor %}
-            </div>
-
-            <div class="alert alert-info mt-4">
-              <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Choose the wire size that best fits your application. 
-              Larger sizes provide more safety margin but cost more. Consider temperature, installation method, 
-              and local electrical codes.
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  {% endif %}
+  <!-- HOW IT WORKS SECTION -->
 
   <!-- HOW IT WORKS SECTION -->
   <div class="row mb-5">

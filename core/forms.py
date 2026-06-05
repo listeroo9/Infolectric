@@ -169,6 +169,17 @@ class WireCalculatorForm(forms.Form):
         return cleaned_data
 
 
+class WireExplorerForm(forms.Form):
+    """Form for selecting a wire size to explore its capability."""
+    wire_size = forms.ModelChoiceField(
+        queryset=WireSize.objects.all().order_by('wire_size_mm2'),
+        label='Wire Size',
+        empty_label='Select a wire size',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        required=True
+    )
+
+
 class ApplianceLoadForm(forms.ModelForm):
     class Meta:
         model = ApplianceLoad
