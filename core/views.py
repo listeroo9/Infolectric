@@ -125,6 +125,20 @@ class ComponentDetailView(DetailView):
     template_name = 'core/component_detail.html'
     context_object_name = 'component'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Prepare a limited, pre-filtered list of related components to avoid
+        # rendering unbounded querysets in the template.
+        component = self.object
+        related_qs = component.category.components.exclude(id=component.id).order_by('name')
+        related_limit = 10
+        related_components = list(related_qs[:related_limit])
+        related_count = related_qs.count()
+        context['related_components'] = related_components
+        context['related_count'] = related_count
+        context['related_limit'] = related_limit
+        return context
+
 
 class ComponentCreateView(LoginRequiredMixin, CreateView):
     """Create a new electrical component."""

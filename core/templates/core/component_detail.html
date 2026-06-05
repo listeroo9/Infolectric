@@ -2,6 +2,52 @@
 
 {% block title %}{{ component.name }} - Infolectric{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Temporary debug border to visualize card boundaries */
+    .card {
+        border: 1px solid red !important;
+        /* Override global height:100% to allow normal document flow */
+        height: auto !important;
+    }
+  .other-component-card {
+    display: flex;
+    flex-direction: column;
+    max-height: 60vh;
+    overflow: hidden;
+  }
+
+  .other-component-card .card-body {
+    overflow-y: auto !important;
+    max-height: calc(60vh - 56px);
+    padding-right: 0.5rem;
+  }
+
+  .other-component-card .list-group {
+    margin-bottom: 0;
+  }
+
+    /* Scrollable list container inside the card body */
+    .other-components-scroll {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+  .other-component-card .list-group-item {
+    white-space: normal;
+  }
+
+  .other-component-card .card-body::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .other-component-card .card-body::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
@@ -74,24 +120,27 @@
         </div>
 
         <!-- RELATED COMPONENTS -->
-        <div class="card mt-4">
+        <div class="card mt-4 other-component-card">
             <div class="card-header">
                 <h5 class="mb-0">Other Components in {{ component.category }}</h5>
             </div>
             <div class="card-body">
-                {% with related=component.category.components.exclude %}
-                    {% if related %}
-                        <div class="list-group">
-                            {% for comp in related %}
-                                <a href="{% url 'core:component-detail' comp.pk %}" class="list-group-item list-group-item-action">
-                                    {{ comp.name }}
-                                </a>
-                            {% endfor %}
+                {% if related_components %}
+                    <div class="list-group other-components-scroll">
+                        {% for comp in related_components %}
+                            <a href="{% url 'core:component-detail' comp.pk %}" class="list-group-item list-group-item-action">
+                                {{ comp.name }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                    {% if related_count and related_count > related_limit %}
+                        <div class="mt-2">
+                            <a href="{% url 'core:category-detail' component.category.pk %}">View all components in category ({{ related_count }})</a>
                         </div>
-                    {% else %}
-                        <p class="text-muted">No other components in this category.</p>
                     {% endif %}
-                {% endwith %}
+                {% else %}
+                    <p class="text-muted">No other components in this category.</p>
+                {% endif %}
             </div>
         </div>
     </div>

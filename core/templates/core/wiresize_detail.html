@@ -2,6 +2,21 @@
 
 {% block title %}{{ wire_size.wire_size_mm2 }}mm² Wire - Infolectric{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Temporary: visualize card boundaries and restore normal flow on this page */
+    .card {
+        border: 1px solid red !important;
+        height: auto !important;
+    }
+
+    /* Ensure stacked cards have spacing */
+    .col-lg-6 > .card + .card {
+        margin-top: 1rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <h1>{{ wire_size.wire_size_mm2 }}mm² Wire Specification</h1>
