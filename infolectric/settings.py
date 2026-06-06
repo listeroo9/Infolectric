@@ -56,6 +56,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.management_permissions',
             ],
         },
     },
@@ -154,5 +155,6 @@ if not DEBUG:
 # ============================================================================
 # LOGIN SETTINGS
 # ============================================================================
-LOGIN_URL = 'admin:login'
-LOGIN_REDIRECT_URL = '/'
+LOGIN_URL = 'core:login'
+LOGIN_REDIRECT_URL = 'core:index'
+LOGOUT_REDIRECT_URL = 'core:index'

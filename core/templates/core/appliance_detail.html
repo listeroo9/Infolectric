@@ -7,7 +7,9 @@
   <p>Voltage: {{ appliance.voltage }} V</p>
   <p>Estimated Current: {{ appliance.estimated_current }} A</p>
   <p>Category: {{ appliance.category }}</p>
-  <a href="{% url 'core:appliance-update' appliance.pk %}" class="btn btn-secondary">Edit</a>
-  <a href="{% url 'core:appliance-delete' appliance.pk %}" class="btn btn-danger">Delete</a>
+  {% if can_manage_appliances %}
+    <a href="{% url 'core:appliance-update' appliance.pk %}" class="btn btn-secondary">Edit</a>
+    <a href="{% url 'core:appliance-delete' appliance.pk %}" class="btn btn-danger">Delete</a>
+  {% endif %}
 </div>
 {% endblock %}

@@ -5,7 +5,7 @@
 {% block content %}
 <div class="page-header">
     <h1><i class="fas fa-cable"></i> Wire Size Reference</h1>
-    {% if user.is_authenticated %}
+    {% if can_manage_wires %}
         <a href="{% url 'core:wiresize-create' %}" class="btn btn-primary">
             <i class="fas fa-plus"></i> Add Wire Size
         </a>
@@ -51,7 +51,7 @@
                             <a href="{% url 'core:wiresize-detail' wire.pk %}" class="btn btn-sm btn-primary" title="View">
                                 <i class="fas fa-eye"></i>
                             </a>
-                            {% if user.is_authenticated %}
+                            {% if can_manage_wires %}
                                 <a href="{% url 'core:wiresize-update' wire.pk %}" class="btn btn-sm btn-warning" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </a>

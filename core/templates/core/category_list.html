@@ -5,7 +5,7 @@
 {% block content %}
 <div class="page-header">
     <h1><i class="fas fa-folder"></i> Categories</h1>
-    {% if user.is_authenticated %}
+    {% if can_manage_categories %}
         <a href="{% url 'core:category-create' %}" class="btn btn-primary">
             <i class="fas fa-plus"></i> Add Category
         </a>
@@ -31,7 +31,7 @@
                             <a href="{% url 'core:category-detail' category.pk %}" class="btn btn-sm btn-primary flex-grow-1">
                                 <i class="fas fa-eye"></i> View
                             </a>
-                            {% if user.is_authenticated %}
+                            {% if can_manage_categories %}
                                 <a href="{% url 'core:category-update' category.pk %}" class="btn btn-sm btn-warning">
                                     <i class="fas fa-edit"></i>
                                 </a>

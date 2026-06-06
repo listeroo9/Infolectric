@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Infolectric{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #f8f9fa;
+            background-image: url("{% static 'images/background.png' %}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+        .auth-header {
+            padding: 1.5rem 0;
+            text-align: center;
+        }
+        .logo-auth {
+            width: 400px;
+            height: auto;
+            display: block;
+            margin: 0 auto 1rem;
+            margin-top: 50px;
+        }
+        .auth-header .brand {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1e40af;
+            text-decoration: none;
+        }
+        .auth-header .brand i {
+            margin-right: 0.5rem;
+        }
+        .auth-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 0;
+            margin-top: -150px;
+        }
+        .auth-footer {
+            text-align: center;
+            padding: 1rem 0;
+            color: #6b7280;
+            font-size: 0.95rem;
+        }
+        .card {
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            background-color: white;
+        }
+        .card:hover {
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header class="auth-header">
+        <img src="{% static 'images/logo1.png' %}" alt="Infolectric Logo" class="logo-auth">
+    </header>
+    <main class="auth-wrapper">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+    <footer class="auth-footer">
+        <a href="{% url 'core:index' %}">Return to Home</a>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

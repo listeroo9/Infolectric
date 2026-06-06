@@ -1,0 +1,57 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Profile - Infolectric{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">Your Profile</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Username:</strong> {{ user.username }}</p>
+                <p><strong>Email:</strong> {{ user.email|default:'Not provided' }}</p>
+                <p><strong>Date Joined:</strong> {{ user.date_joined|date:'F d, Y' }}</p>
+                <a href="{% url 'core:logout' %}" class="btn btn-danger w-100">Logout</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h6>Saved Calculations</h6>
+                        <p class="text-muted">Your saved calculations will appear here once this feature is available.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h6>Favorite Components</h6>
+                        <p class="text-muted">Bookmark components for faster access as the app expands.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h6>Favorite Appliances</h6>
+                        <p class="text-muted">Favorites help you track appliance loads and compare selections quickly.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h6>Submission Requests</h6>
+                        <p class="text-muted">Submit appliance or component requests for review in future releases.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

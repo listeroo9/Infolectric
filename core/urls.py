@@ -4,6 +4,7 @@ Includes both regular views and API endpoints.
 """
 
 from django.urls import path, include
+from django.contrib.auth.views import LogoutView
 from rest_framework.routers import DefaultRouter
 from . import views
 from . import api_views
@@ -73,6 +74,12 @@ urlpatterns = [
     path('appliances/<int:pk>/', views.ApplianceDetailView.as_view(), name='appliance-detail'),
     path('appliances/<int:pk>/update/', views.ApplianceUpdateView.as_view(), name='appliance-update'),
     path('appliances/<int:pk>/delete/', views.ApplianceDeleteView.as_view(), name='appliance-delete'),
+
+    # Authentication
+    path('login/', views.InfolectricLoginView.as_view(), name='login'),
+    path('logout/', LogoutView.as_view(next_page='core:index'), name='logout'),
+    path('register/', views.register, name='register'),
+    path('profile/', views.ProfileView.as_view(), name='profile'),
 
     # Project Builder
     path('project-builder/', views.ProjectBuilderView, name='project-builder'),

@@ -5,7 +5,7 @@
 {% block content %}
 <div class="page-header">
     <h1>{{ category.name }}</h1>
-    {% if user.is_authenticated %}
+    {% if can_manage_categories %}
         <div>
             <a href="{% url 'core:category-update' category.pk %}" class="btn btn-warning">
                 <i class="fas fa-edit"></i> Edit
@@ -82,7 +82,7 @@
                             <a href="{% url 'core:component-detail' component.pk %}" class="btn btn-sm btn-primary flex-grow-1">
                                 View Details
                             </a>
-                            {% if user.is_authenticated %}
+                            {% if can_manage_components %}
                                 <a href="{% url 'core:component-update' component.pk %}" class="btn btn-sm btn-warning">
                                     <i class="fas fa-edit"></i>
                                 </a>
@@ -96,7 +96,7 @@
 {% else %}
     <div class="alert alert-info">
         <i class="fas fa-info-circle"></i> No components in this category yet.
-        {% if user.is_authenticated %}
+        {% if can_manage_components %}
             <a href="{% url 'core:component-create' %}">Create the first one!</a>
         {% endif %}
     </div>

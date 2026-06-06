@@ -20,7 +20,7 @@
 {% block content %}
 <div class="page-header">
     <h1>{{ wire_size.wire_size_mm2 }}mm² Wire Specification</h1>
-    {% if user.is_authenticated %}
+    {% if can_manage_wires %}
         <div>
             <a href="{% url 'core:wiresize-update' wire_size.pk %}" class="btn btn-warning">
                 <i class="fas fa-edit"></i> Edit

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+{% load static %}
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,22 +22,51 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f8f9fa;
+            background-image: url("{% static 'images/background.png' %}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
         }
         
         .navbar {
             background: linear-gradient(135deg, var(--primary-color) 0%, #1e3a8a 100%);
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            min-height: 64px;
+            padding: 0 !important;
         }
-        
+
+        .navbar-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 0 1rem;
+            height: 100%;
+        }
+
         .navbar-brand {
             font-weight: bold;
             font-size: 1.5rem;
+            display: inline-flex;
+            align-items: center;
+            padding: 0;
+            margin: 0;
+            flex-shrink: 0;
+        }
+
+        .navbar-nav-container {
+            display: flex;
+            align-items: center;
+            margin-left: auto;
+            gap: 0;
         }
         
         .navbar .nav-link {
             color: rgba(255,255,255,0.8) !important;
-            margin-left: 1rem;
+            padding: 0.5rem 0.75rem;
             transition: color 0.3s ease;
+            white-space: nowrap;
         }
         
         .navbar .nav-link:hover {
@@ -47,7 +77,102 @@
             color: white !important;
             border-bottom: 3px solid white;
         }
-        
+
+        .logo-navbar {
+            max-height: 48px;
+            height: auto;
+            width: auto;
+            object-fit: contain;
+            margin-left: 25px;
+            display: block;
+        }
+
+        .logo-hero {
+            max-width: 420px;
+            width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto 1.5rem;
+        }
+
+        @media (max-width: 767px) {
+            .logo-hero {
+                width: 150px;
+            }
+
+            .navbar-content {
+                padding: 0 0.75rem;
+            }
+
+            .navbar .nav-link {
+                padding: 0.5rem 0.5rem;
+                font-size: 0.9rem;
+            }
+
+            .navbar-toggler {
+                border: none;
+                padding: 0.25rem 0.5rem;
+            }
+
+            .navbar-collapse {
+                margin-top: 0.5rem;
+            }
+
+            .navbar-nav-container {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 0 !important;
+            }
+
+            .navbar-nav {
+                width: 100%;
+            }
+
+            .navbar-nav .nav-link {
+                padding: 0.75rem 0.5rem !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+        }
+
+        @media (min-width: 992px) {
+            .navbar-toggler {
+                display: none;
+            }
+
+            .navbar-collapse {
+                display: flex !important;
+            }
+        }
+
+        .logo-footer {
+            height: 50px;
+            width: auto;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto 0.75rem;
+        }
+
+        .footer {
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            color: #6c757d;
+            background-color: transparent;
+            padding: 1rem 0;
+            text-align: center;
+            font-size: 0.95rem;
+        }
+
+        .footer .footer-tagline {
+            color: #868e96;
+            margin: 0.25rem 0 0;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .footer .footer-note {
+            margin: 0;
+            opacity: 0.8;
+        }
+
         .hero-section {
             background: linear-gradient(135deg, var(--primary-color) 0%, #1e3a8a 100%);
             color: white;
@@ -70,14 +195,14 @@
         .card {
             border: none;
             border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             height: 100%;
         }
         
         .card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
         }
         
         .card-header {
@@ -125,6 +250,9 @@
         
         .table {
             background-color: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 6px;
+            overflow: hidden;
         }
         
         .table thead {
@@ -175,6 +303,19 @@
             font-size: 0.9rem;
             margin-top: 0.5rem;
         }
+
+        /* Content container styling for background visibility */
+        .container-lg {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Enhance form and input styling for background */
+        form, .form-group {
+            background-color: rgba(255, 255, 255, 0.5);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
     </style>
     
     {% block extra_css %}{% endblock %}
@@ -182,59 +323,67 @@
 <body>
     <!-- NAVBAR -->
     <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container-lg">
-            <a class="navbar-brand" href="{% url 'core:index' %}">
-                <i class="fas fa-bolt"></i> Infolectric
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'core:index' %}">
-                            <i class="fas fa-home"></i> Home
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'core:component-list' %}">
-                            <i class="fas fa-microchip"></i> Components
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'core:category-list' %}">
-                            <i class="fas fa-folder"></i> Categories
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'core:wiresize-list' %}">
-                            <i class="fas fa-cable"></i> Wire Sizes
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'core:calculator' %}">
-                            <i class="fas fa-calculator"></i> Calculator
-                        </a>
-                    </li>
-                    {% if user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'admin:index' %}">
-                                <i class="fas fa-cog"></i> Admin
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'admin:logout' %}">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'admin:login' %}">
-                                <i class="fas fa-sign-in-alt"></i> Login
-                            </a>
-                        </li>
-                    {% endif %}
-                </ul>
+        <div class="container-fluid px-0">
+            <div class="d-flex w-100 align-items-center">
+                <!-- Logo pinned to far left -->
+                <a class="navbar-brand d-flex align-items-center" href="{% url 'core:index' %}">
+                    <img src="{% static 'images/logo3.png' %}" alt="Infolectric Logo" class="logo-navbar">
+                </a>
+
+                <!-- Toggler and nav placed to the right -->
+                <div class="d-flex align-items-center ms-auto">
+                    <button class="navbar-toggler me-2" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+
+                    <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                        <ul class="navbar-nav d-flex align-items-center gap-2 ms-auto">
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'core:index' %}">
+                                    <i class="fas fa-home"></i> Home
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'core:calculator' %}">
+                                    <i class="fas fa-calculator"></i> Calculator
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'core:component-list' %}">
+                                    <i class="fas fa-microchip"></i> Components
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'core:appliance-list' %}">
+                                    <i class="fas fa-plug-circle-bolt"></i> Appliances
+                                </a>
+                            </li>
+                            {% if user.is_authenticated %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'core:profile' %}">
+                                        <i class="fas fa-user"></i> Profile
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'core:logout' %}">
+                                        <i class="fas fa-sign-out-alt"></i> Logout
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'core:login' %}">
+                                        <i class="fas fa-sign-in-alt"></i> Login
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'core:register' %}">
+                                        <i class="fas fa-user-plus"></i> Register
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </nav>
@@ -257,14 +406,11 @@
     </div>
 
     <!-- FOOTER -->
-    <footer>
+    <footer class="footer">
         <div class="container-lg">
-            <p>&copy; 2024 Infolectric. Educational platform for electrical information and calculations.</p>
-            <p>
-                <a href="#" style="color: #a0aec0; text-decoration: none;">API Documentation</a> | 
-                <a href="#" style="color: #a0aec0; text-decoration: none;">About</a> | 
-                <a href="#" style="color: #a0aec0; text-decoration: none;">Contact</a>
-            </p>
+            <img src="{% static 'images/logo3.png' %}" alt="Infolectric Logo" class="logo-footer">
+            <p class="footer-note">© 2026 Infolectric. All rights reserved.</p>
+            <p class="footer-tagline">Electrical calculations, wire sizing, and appliance analysis.</p>
         </div>
     </footer>
 

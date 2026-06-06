@@ -1,136 +1,339 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
-{% block title %}Home - Infolectric{% endblock %}
+{% block title %}Infolectric - Electrical Calculations &amp; Appliance Analysis{% endblock %}
 
 {% block content %}
 <!-- HERO SECTION -->
-<div class="hero-section">
-    <h1>Welcome to Infolectric</h1>
-    <p>Your Complete Electrical Information and Calculation Platform</p>
-    <p style="font-size: 0.95rem; opacity: 0.8;">Educational resources for students, electricians, and electronics enthusiasts</p>
-</div>
-
-<!-- STATS -->
-<div class="row mb-5">
-    <div class="col-md-3">
-        <div class="card stats-card">
-            <div class="number">{{ component_count }}</div>
-            <div class="label">Components</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card stats-card">
-            <div class="number">{{ category_count }}</div>
-            <div class="label">Categories</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card stats-card">
-            <div class="number">{{ wiresize_count }}</div>
-            <div class="label">Wire Sizes</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card stats-card">
-            <div class="number">∞</div>
-            <div class="label">Learning Value</div>
-        </div>
-    </div>
-</div>
-
-<!-- FEATURES -->
-<div class="row mb-5">
-    <div class="col-md-4 mb-4">
-        <div class="card">
-            <div class="card-body text-center">
-                <i class="fas fa-microchip" style="font-size: 3rem; color: #1e40af; margin-bottom: 1rem;"></i>
-                <h5 class="card-title">Component Library</h5>
-                <p class="card-text">Explore our comprehensive database of electrical components with detailed specifications and descriptions.</p>
-                <a href="{% url 'core:component-list' %}" class="btn btn-primary">Browse Components</a>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4 mb-4">
-        <div class="card">
-            <div class="card-body text-center">
-                <i class="fas fa-calculator" style="font-size: 3rem; color: #16a34a; margin-bottom: 1rem;"></i>
-                <h5 class="card-title">Wire Calculator</h5>
-                <p class="card-text">Get instant wire size recommendations based on your required current (amperage).</p>
-                <a href="{% url 'core:calculator' %}" class="btn btn-success">Calculate Now</a>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4 mb-4">
-        <div class="card">
-            <div class="card-body text-center">
-                <i class="fas fa-cable" style="font-size: 3rem; color: #dc2626; margin-bottom: 1rem;"></i>
-                <h5 class="card-title">Wire Reference</h5>
-                <p class="card-text">Access comprehensive wire size charts with ampacity ratings and applications.</p>
-                <a href="{% url 'core:wiresize-list' %}" class="btn btn-danger">View Wire Sizes</a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- RECENT COMPONENTS -->
-<h2 class="mb-4" style="color: #1e40af;">Recently Added Components</h2>
-<div class="row">
-    {% for component in recent_components %}
-        <div class="col-md-6 col-lg-4 mb-4">
-            <div class="card">
-                {% if component.image %}
-                    <img src="{{ component.image.url }}" class="card-img-top" alt="{{ component.name }}" style="height: 200px; object-fit: cover;">
-                {% else %}
-                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
-                        <i class="fas fa-microchip" style="font-size: 3rem; color: #ccc;"></i>
-                    </div>
-                {% endif %}
-                <div class="card-body">
-                    <h5 class="card-title">{{ component.name }}</h5>
-                    <p class="card-text text-truncate">{{ component.description }}</p>
-                    <div class="mb-3">
-                        <span class="badge badge-primary">{{ component.category }}</span>
-                    </div>
-                    <a href="{% url 'core:component-detail' component.pk %}" class="btn btn-sm btn-primary">View Details</a>
+<section class="py-6">
+    <div class="container">
+        <div class="row align-items-center justify-content-center">
+            <div class="col-lg-7 text-center">
+                <img src="{% static 'images/logo2.png' %}" alt="Infolectric" class="mb-4" style="max-width: 400px; height: auto;">
+                <h1 class="display-5 fw-bold mb-3 lh-sm">Electrical Calculations Made Simple</h1>
+                <p class="text-muted mb-6" style="font-size: 1.05rem; line-height: 1.6;">Wire sizing, appliance analysis, and component database in one place.</p>
+                <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
+                    <a href="#features" class="btn btn-primary btn-lg px-5">Explore Tools</a>
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'core:profile' %}" class="btn btn-outline-primary btn-lg px-5">Go to Profile</a>
+                    {% else %}
+                        <a href="{% url 'core:register' %}" class="btn btn-outline-primary btn-lg px-5">Register</a>
+                        <a href="{% url 'core:login' %}" class="btn btn-link btn-lg px-3 text-decoration-none">Login</a>
+                    {% endif %}
                 </div>
             </div>
         </div>
-    {% empty %}
-        <div class="col-12">
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i> No components added yet. 
-                {% if user.is_authenticated %}
-                    <a href="{% url 'core:component-create' %}">Create the first one!</a>
-                {% endif %}
-            </div>
-        </div>
-    {% endfor %}
-</div>
+    </div>
+</section>
 
-<!-- API DOCUMENTATION SECTION -->
-<div class="row mt-5">
-    <div class="col-12">
-        <div class="card" style="background-color: #f0f4ff; border: 2px solid #1e40af;">
-            <div class="card-body">
-                <h5 class="card-title">
-                    <i class="fas fa-code"></i> API Documentation
-                </h5>
-                <p class="card-text">
-                    Infolectric provides a RESTful API for programmatic access to all data. 
-                    Access components, categories, and wire sizes in JSON format.
-                </p>
-                <p style="font-size: 0.9rem; color: #555;">
-                    <strong>Available Endpoints:</strong><br>
-                    • <code>GET /api/components/</code> - List all components<br>
-                    • <code>GET /api/categories/</code> - List all categories<br>
-                    • <code>GET /api/wire-sizes/</code> - List all wire sizes<br>
-                    • <code>POST /api/wire-recommendation/recommend/</code> - Get wire recommendations
-                </p>
+<!-- QUICK ACCESS -->
+
+<!-- FEATURES SECTION -->
+<section id="features" class="py-6 border-top">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold mb-2">Core Features</h2>
+            <p class="text-muted">Everything you need for electrical design</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <a href="{% url 'core:calculator' %}" class="feature-card text-decoration-none text-reset d-block h-100">
+                    <div class="card h-100 p-4 border-0">
+                        <div class="mb-3 fs-3 text-primary">
+                            <i class="fas fa-calculator fa-lg"></i>
+                        </div>
+                        <h5 class="fw-bold mb-2">Wire Calculator</h5>
+                        <p class="text-muted small mb-0">Fast current calculations and wire sizing.</p>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <a href="{% url 'core:calculator' %}" class="feature-card text-decoration-none text-reset d-block h-100">
+                    <div class="card h-100 p-4 border-0">
+                        <div class="mb-3 fs-3 text-success">
+                            <i class="fas fa-search fa-lg"></i>
+                        </div>
+                        <h5 class="fw-bold mb-2">Wire Explorer</h5>
+                        <p class="text-muted small mb-0">Explore specs and compatibility.</p>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <a href="{% url 'core:component-list' %}" class="feature-card text-decoration-none text-reset d-block h-100">
+                    <div class="card h-100 p-4 border-0">
+                        <div class="mb-3 fs-3 text-info">
+                            <i class="fas fa-microchip fa-lg"></i>
+                        </div>
+                        <h5 class="fw-bold mb-2">Components</h5>
+                        <p class="text-muted small mb-0">Browse electrical components and specs.</p>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <a href="{% url 'core:appliance-list' %}" class="feature-card text-decoration-none text-reset d-block h-100">
+                    <div class="card h-100 p-4 border-0">
+                        <div class="mb-3 fs-3" style="color: #ff7b54;">
+                            <i class="fas fa-plug-circle-bolt fa-lg"></i>
+                        </div>
+                        <h5 class="fw-bold mb-2">Appliances</h5>
+                        <p class="text-muted small mb-0">Search power requirements.</p>
+                    </div>
+                </a>
             </div>
         </div>
     </div>
-</div>
+</section>
 
+<!-- PRIMARY ACTIONS -->
+<section class="py-6">
+    <div class="container">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold">Quick Actions</h2>
+            <p class="text-muted">Jump straight into the tools you need</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-6 col-md-3">
+                <div class="card primary-card h-100 p-3 text-center">
+                    <div class="mb-3 fs-3 text-primary"><i class="fas fa-calculator fa-lg"></i></div>
+                    <h5 class="fw-bold">Calculator</h5>
+                    <p class="text-muted small">Wire recommendations and voltage drop.</p>
+                    <a href="{% url 'core:calculator' %}" class="btn btn-primary btn-sm mt-2">Open</a>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card primary-card h-100 p-3 text-center">
+                    <div class="mb-3 fs-3 text-success"><i class="fas fa-search fa-lg"></i></div>
+                    <h5 class="fw-bold">Wire Explorer</h5>
+                    <p class="text-muted small">Specs, ampacity and compatibility.</p>
+                    <a href="{% url 'core:calculator' %}" class="btn btn-success btn-sm mt-2">Open</a>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card primary-card h-100 p-3 text-center">
+                    <div class="mb-3 fs-3 text-info"><i class="fas fa-microchip fa-lg"></i></div>
+                    <h5 class="fw-bold">Components</h5>
+                    <p class="text-muted small">Browse the component DB.</p>
+                    <a href="{% url 'core:component-list' %}" class="btn btn-info btn-sm mt-2">Open</a>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card primary-card h-100 p-3 text-center">
+                    <div class="mb-3 fs-3" style="color: #ff7b54;"><i class="fas fa-plug-circle-bolt fa-lg"></i></div>
+                    <h5 class="fw-bold">Appliances</h5>
+                    <p class="text-muted small">Appliance power & specs.</p>
+                    <a href="{% url 'core:appliance-list' %}" class="btn btn-warning btn-sm mt-2">Open</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FUNDAMENTALS SECTION -->
+<section class="py-6 border-top">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold mb-2">Learn the Fundamentals</h2>
+            <p class="text-muted">Core concepts for safe, efficient electrical design</p>
+        </div>
+        <div class="row g-5">
+            <div class="col-md-6">
+                <div class="d-flex gap-4">
+                    <div class="flex-shrink-0 pt-1">
+                        <div class="d-inline-flex align-items-center justify-content-center" style="width: 48px; height: 48px; border-radius: 10px; background: rgba(13, 110, 253, 0.1); color: #0d6efd;">
+                            <i class="fas fa-cable fs-6"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-1">Wire Sizing</h5>
+                        <p class="text-muted small mb-0">Choose conductor size to prevent overheating and voltage drop.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex gap-4">
+                    <div class="flex-shrink-0 pt-1">
+                        <div class="d-inline-flex align-items-center justify-content-center" style="width: 48px; height: 48px; border-radius: 10px; background: rgba(123, 60, 237, 0.1); color: #7c3ced;">
+                            <i class="fas fa-bolt fs-6"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-1">Current</h5>
+                        <p class="text-muted small mb-0">Current flow impacts wire selection and circuit protection.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex gap-4">
+                    <div class="flex-shrink-0 pt-1">
+                        <div class="d-inline-flex align-items-center justify-content-center" style="width: 48px; height: 48px; border-radius: 10px; background: rgba(13, 202, 240, 0.1); color: #0dcaf0;">
+                            <i class="fas fa-zap fs-6"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-1">Voltage</h5>
+                        <p class="text-muted small mb-0">Voltage and distance affect power delivery and efficiency.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex gap-4">
+                    <div class="flex-shrink-0 pt-1">
+                        <div class="d-inline-flex align-items-center justify-content-center" style="width: 48px; height: 48px; border-radius: 10px; background: rgba(25, 135, 84, 0.1); color: #198754;">
+                            <i class="fas fa-fire fs-6"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-1">Power & Safety</h5>
+                        <p class="text-muted small mb-0">Convert watts to amps and prioritize safe installations.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- STATS SECTION -->
+<section class="py-6 border-top">
+    <div class="container">
+        <div class="row text-center">
+            <div class="col-6 col-md-3 py-3">
+                <div class="display-6 fw-bold text-primary">{{ component_count }}</div>
+                <p class="text-muted small mt-2 mb-0">Components</p>
+            </div>
+            <div class="col-6 col-md-3 py-3 border-start border-end border-md-0">
+                <div class="display-6 fw-bold text-success">{{ category_count }}</div>
+                <p class="text-muted small mt-2 mb-0">Categories</p>
+            </div>
+            <div class="col-6 col-md-3 py-3 border-top border-md-0 border-start">
+                <div class="display-6 fw-bold text-info">{{ wiresize_count }}</div>
+                <p class="text-muted small mt-2 mb-0">Wire Sizes</p>
+            </div>
+            <div class="col-6 col-md-3 py-3 border-start border-top border-md-0">
+                <div class="display-6 fw-bold" style="color: #ff7b54;">{{ appliance_count }}</div>
+                <p class="text-muted small mt-2 mb-0">Appliances</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CUSTOM STYLES FOR LANDING PAGE -->
+{% block extra_css %}
+<style>
+    .py-6 {
+        padding-top: 4rem !important;
+        padding-bottom: 4rem !important;
+    }
+
+    .mb-6 {
+        margin-bottom: 2rem !important;
+    }
+
+    /* Subtle border styling for sections */
+    .border-top {
+        border-top: 1px solid #e5e7eb !important;
+    }
+
+    /* Icon backgrounds with subtle colors */
+    .icon-bg {
+        border-radius: 10px;
+        padding: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Improved hero typography */
+    .display-5 {
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+    }
+
+    .lh-sm {
+        line-height: 1.25 !important;
+    }
+
+    /* Responsive adjustments for mobile */
+    @media (max-width: 576px) {
+        .py-6 {
+            padding-top: 2.5rem !important;
+            padding-bottom: 2.5rem !important;
+        }
+
+        .display-6 {
+            font-size: 2rem;
+        }
+
+        .border-start {
+            border-left: none !important;
+        }
+
+        .border-end {
+            border-right: none !important;
+        }
+
+        .border-md-0 {
+            border: none !important;
+        }
+    }
+
+    @media (min-width: 768px) {
+        .border-md-0 {
+            border: none !important;
+        }
+    }
+
+    /* Link button styling */
+    .btn-link {
+        color: #6c757d;
+        text-decoration: none;
+        transition: color 0.15s ease-in-out;
+    }
+
+    .btn-link:hover {
+        color: #0d6efd;
+    }
+
+    /* Feature cards and primary action styling */
+    .feature-card .card {
+        border-radius: 12px;
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
+        background: #ffffff;
+        height: 100%;
+    }
+
+    .feature-card .card:hover,
+    .primary-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 10px 30px rgba(2,6,23,0.08);
+    }
+
+    .primary-card {
+        border-radius: 10px;
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .feature-card .fa-lg,
+    .primary-card .fa-lg {
+        font-size: 1.35rem;
+    }
+
+    /* Ensure equal height cards */
+    .card.h-100 { display: flex; flex-direction: column; justify-content: flex-start; }
+
+    .primary-card .btn { margin-top: auto; }
+
+    .btn-info:hover {
+        background-color: #0ba5c4;
+        border-color: #0b95b2;
+        color: #fff;
+    }
+
+    .btn-warning:hover {
+        background-color: #d39e00;
+        border-color: #c49a00;
+        color: #212529;
+    }
+</style>
 {% endblock %}
+{% endblock %}
+

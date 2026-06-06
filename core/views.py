@@ -6,17 +6,32 @@ Includes CRUD views, search, filtering, and calculator functionality.
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import (
-    ListView, DetailView, CreateView, UpdateView, DeleteView
+    ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
 )
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.views import LoginView
+from django.contrib.auth import login as auth_login
 from django.urls import reverse_lazy
 from django.db.models import Q
 from django.contrib import messages
 from .models import Component, Category, WireSize
-from .forms import ComponentForm, CategoryForm, WireSizeForm, WireCalculatorForm, WireExplorerForm
+from .forms import (
+    ComponentForm, CategoryForm, WireSizeForm,
+    WireCalculatorForm, WireExplorerForm,
+    ApplianceLoadForm, ProjectBuilderForm,
+    InfolectricAuthenticationForm, UserRegistrationForm
+)
 from .models import ApplianceLoad
-from .forms import ApplianceLoadForm, ProjectBuilderForm
 from . import services
+
+
+class ManagementPermissionMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """Require authenticated staff or superuser access for management actions."""
+    raise_exception = True
+
+    def test_func(self):
+        user = self.request.user
+        return user.is_authenticated and (user.is_staff or user.is_superuser)
 
 
 # ============================================================================
@@ -44,7 +59,7 @@ class CategoryDetailView(DetailView):
         return context
 
 
-class CategoryCreateView(LoginRequiredMixin, CreateView):
+class CategoryCreateView(ManagementPermissionMixin, CreateView):
     """Create a new electrical component category."""
     model = Category
     form_class = CategoryForm
@@ -56,7 +71,7 @@ class CategoryCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class CategoryUpdateView(LoginRequiredMixin, UpdateView):
+class CategoryUpdateView(ManagementPermissionMixin, UpdateView):
     """Update an existing electrical component category."""
     model = Category
     form_class = CategoryForm
@@ -68,7 +83,7 @@ class CategoryUpdateView(LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 
-class CategoryDeleteView(LoginRequiredMixin, DeleteView):
+class CategoryDeleteView(ManagementPermissionMixin, DeleteView):
     """Delete an electrical component category."""
     model = Category
     template_name = 'core/category_confirm_delete.html'
@@ -140,7 +155,7 @@ class ComponentDetailView(DetailView):
         return context
 
 
-class ComponentCreateView(LoginRequiredMixin, CreateView):
+class ComponentCreateView(ManagementPermissionMixin, CreateView):
     """Create a new electrical component."""
     model = Component
     form_class = ComponentForm
@@ -152,7 +167,7 @@ class ComponentCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class ComponentUpdateView(LoginRequiredMixin, UpdateView):
+class ComponentUpdateView(ManagementPermissionMixin, UpdateView):
     """Update an existing electrical component."""
     model = Component
     form_class = ComponentForm
@@ -166,7 +181,7 @@ class ComponentUpdateView(LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 
-class ComponentDeleteView(LoginRequiredMixin, DeleteView):
+class ComponentDeleteView(ManagementPermissionMixin, DeleteView):
     """Delete an electrical component."""
     model = Component
     template_name = 'core/component_confirm_delete.html'
@@ -176,6 +191,35 @@ class ComponentDeleteView(LoginRequiredMixin, DeleteView):
         component_name = self.get_object().name
         messages.success(request, f"Component '{component_name}' deleted successfully!")
         return super().delete(request, *args, **kwargs)
+
+
+class InfolectricLoginView(LoginView):
+    """Login view using custom authentication form with optional remember me."""
+    template_name = 'core/login.html'
+    authentication_form = InfolectricAuthenticationForm
+    redirect_authenticated_user = True
+
+    def form_valid(self, form):
+        remember_me = form.cleaned_data.get('remember_me')
+        response = super().form_valid(form)
+        if not remember_me:
+            self.request.session.set_expiry(0)
+        return response
+
+
+class ProfileView(LoginRequiredMixin, TemplateView):
+    """Simple profile page for authenticated Infolectric users."""
+    template_name = 'core/profile.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({
+            'saved_calculations_count': 0,
+            'favorite_components_count': 0,
+            'favorite_appliances_count': 0,
+            'submission_requests_count': 0,
+        })
+        return context
 
 
 # ============================================================================
@@ -197,7 +241,7 @@ class WireSizeDetailView(DetailView):
     context_object_name = 'wire_size'
 
 
-class WireSizeCreateView(LoginRequiredMixin, CreateView):
+class WireSizeCreateView(ManagementPermissionMixin, CreateView):
     """Create a new wire size specification."""
     model = WireSize
     form_class = WireSizeForm
@@ -212,7 +256,7 @@ class WireSizeCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class WireSizeUpdateView(LoginRequiredMixin, UpdateView):
+class WireSizeUpdateView(ManagementPermissionMixin, UpdateView):
     """Update an existing wire size specification."""
     model = WireSize
     form_class = WireSizeForm
@@ -229,7 +273,7 @@ class WireSizeUpdateView(LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 
-class WireSizeDeleteView(LoginRequiredMixin, DeleteView):
+class WireSizeDeleteView(ManagementPermissionMixin, DeleteView):
     """Delete a wire size specification."""
     model = WireSize
     template_name = 'core/wiresize_confirm_delete.html'
@@ -251,9 +295,22 @@ def index(request):
         'component_count': Component.objects.count(),
         'category_count': Category.objects.count(),
         'wiresize_count': WireSize.objects.count(),
+        'appliance_count': ApplianceLoad.objects.count(),
         'recent_components': Component.objects.all()[:5],
     }
     return render(request, 'core/index.html', context)
+
+
+def register(request):
+    """Registration page for new users."""
+    form = UserRegistrationForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        user = form.save()
+        auth_login(request, user)
+        messages.success(request, 'Welcome to Infolectric! Your account has been created.')
+        return redirect('core:index')
+
+    return render(request, 'core/register.html', {'form': form})
 
 
 # ============================================================================
@@ -424,7 +481,7 @@ class ApplianceDetailView(DetailView):
     context_object_name = 'appliance'
 
 
-class ApplianceCreateView(LoginRequiredMixin, CreateView):
+class ApplianceCreateView(ManagementPermissionMixin, CreateView):
     model = ApplianceLoad
     form_class = ApplianceLoadForm
     template_name = 'core/appliance_form.html'
@@ -435,7 +492,7 @@ class ApplianceCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class ApplianceUpdateView(LoginRequiredMixin, UpdateView):
+class ApplianceUpdateView(ManagementPermissionMixin, UpdateView):
     model = ApplianceLoad
     form_class = ApplianceLoadForm
     template_name = 'core/appliance_form.html'
@@ -448,7 +505,7 @@ class ApplianceUpdateView(LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 
-class ApplianceDeleteView(LoginRequiredMixin, DeleteView):
+class ApplianceDeleteView(ManagementPermissionMixin, DeleteView):
     model = ApplianceLoad
     template_name = 'core/appliance_confirm_delete.html'
     success_url = reverse_lazy('core:appliance-list')
