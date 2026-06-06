@@ -1,52 +1,288 @@
 {% extends 'core/auth_base.html' %}
+{% load socialaccount %}
 
-{% block title %}Login - Infolectric{% endblock %}
+{% block title %}Sign in - Infolectric{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-7 col-lg-5">
-        <div class="card shadow-sm mt-5">
-            <div class="card-header text-center">
-                <h3 class="mb-0">Login to Infolectric</h3>
-            </div>
-            <div class="card-body">
-                <p class="text-muted text-center">Enter your username and password to continue.</p>
-                <form method="post" novalidate>
-                    {% csrf_token %}
-                    {% if form.non_field_errors %}
-                        <div class="alert alert-danger">
-                            {{ form.non_field_errors }}
-                        </div>
-                    {% endif %}
+<style>
+  .login-wrapper {
+    max-width: 380px;
+    margin: 60px auto;
+    padding: 0 16px;
+  }
+  .login-card-glass {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    padding: 32px 28px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  }
+  .login-header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .login-header h1 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 8px;
+  }
+  .login-top-link {
+    font-size: 0.9rem;
+    color: #64748b;
+  }
+  .login-top-link a {
+    color: #2563eb;
+    text-decoration: none;
+  }
+  .login-top-link a:hover {
+    text-decoration: underline;
+  }
+  .google-login-btn {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 16px;
+    background: #ffffff;
+    border: 1px solid rgba(15,23,42,0.1);
+    border-radius: 6px;
+    text-align: center;
+    text-decoration: none;
+    color: #111827;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: background 0.15s ease;
+  }
+  .google-login-btn:hover {
+    background: #f8f9fa;
+  }
+  .google-login-btn i {
+    margin-right: 8px;
+    color: #4285f4;
+  }
+  .login-divider {
+    text-align: center;
+    margin: 20px 0;
+    position: relative;
+  }
+  .login-divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(15,23,42,0.08);
+  }
+  .login-divider-text {
+    position: relative;
+    display: inline-block;
+    background: #ffffff;
+    padding: 0 12px;
+    font-size: 0.85rem;
+    color: #94a3b8;
+  }
+  .form-group {
+    margin-bottom: 16px;
+  }
+  .form-label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #111827;
+    margin-bottom: 6px;
+  }
+  .form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid rgba(15,23,42,0.1);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    transition: border-color 0.15s ease;
+    box-sizing: border-box;
+  }
+  .form-control:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+  }
+  .form-control::placeholder {
+    color: #cbd5e1;
+  }
+  .password-wrapper {
+    position: relative;
+  }
+  .toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0;
+  }
+  .toggle-password:hover {
+    color: #0f172a;
+  }
+  .checkbox-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .checkbox-group input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    cursor: pointer;
+  }
+  .checkbox-group label {
+    font-size: 0.9rem;
+    color: #111827;
+    cursor: pointer;
+    margin: 0;
+  }
+  .login-btn {
+    width: 100%;
+    padding: 10px;
+    background: #366ce2;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .login-btn:hover {
+    background: #1746ac;
+  }
+  .login-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 20px;
+    font-size: 0.85rem;
+  }
+  .login-footer a {
+    color: #2563eb;
+    text-decoration: none;
+  }
+  .login-footer a:hover {
+    text-decoration: underline;
+  }
+  .alert-danger {
+    background: #fee2e2;
+    border: 1px solid #fca5a5;
+    color: #991b1b;
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+  }
+  .error-text {
+    color: #dc2626;
+    font-size: 0.8rem;
+    margin-top: 4px;
+  }
+  @media (max-width: 480px) {
+    .login-wrapper {
+      margin: 40px auto;
+    }
+    .login-header h1 {
+      font-size: 1.5rem;
+    }
+  }
+</style>
 
-                    <div class="mb-3">
-                        <label class="form-label" for="id_username">Username</label>
-                        {{ form.username }}
-                        {% if form.username.errors %}
-                            <div class="text-danger small">{{ form.username.errors }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label" for="id_password">Password</label>
-                        {{ form.password }}
-                        {% if form.password.errors %}
-                            <div class="text-danger small">{{ form.password.errors }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="form-check mb-3">
-                        {{ form.remember_me }}
-                        <label class="form-check-label" for="id_remember_me">Remember me</label>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100">Login</button>
-                </form>
-                <div class="mt-4 text-center">
-                    <p class="mb-0">Don't have an account? <a href="{% url 'core:register' %}">Register here</a>.</p>
-                </div>
-            </div>
-        </div>
+<div class="login-wrapper">
+  <div class="login-card-glass">
+    <div class="login-header">
+      <h1>Sign in</h1>
+      <p class="login-top-link">
+        Don't have an account? <a href="{% url 'core:register' %}">Create an account</a>
+      </p>
     </div>
+
+    <!-- Google Login Button -->
+    <a href="{% provider_login_url 'google' %}" class="google-login-btn">
+      <i class="fab fa-google"></i> Continue with Google
+    </a>
+
+    <!-- Divider -->
+    <div class="login-divider">
+      <span class="login-divider-text">or sign in with email</span>
+    </div>
+
+    <!-- Login Form -->
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert-danger">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
+
+      <div class="form-group">
+        <label class="form-label" for="id_username">Username or Email</label>
+        {{ form.username }}
+        {% if form.username.errors %}
+          <div class="error-text">{{ form.username.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="id_password">Password</label>
+        <div class="password-wrapper">
+          {{ form.password }}
+          <button type="button" class="toggle-password" onclick="togglePassword()">Show</button>
+        </div>
+        {% if form.password.errors %}
+          <div class="error-text">{{ form.password.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="checkbox-group">
+        {{ form.remember_me }}
+        <label for="id_remember_me">Keep me signed in</label>
+      </div>
+
+      <button type="submit" class="login-btn">Sign in</button>
+    </form>
+
+    <!-- Footer Links -->
+    <div class="login-footer">
+      <a href="#">Forgot username?</a>
+      <a href="#">Forgot password?</a>
+      <a href="#">Can't sign in?</a>
+    </div>
+  </div>
 </div>
+
+<script>
+  function togglePassword() {
+    var input = document.getElementById('id_password');
+    var btn = document.querySelector('.toggle-password');
+    if (input.type === 'password') {
+      input.type = 'text';
+      btn.textContent = 'Hide';
+    } else {
+      input.type = 'password';
+      btn.textContent = 'Show';
+    }
+  }
+
+  // Add placeholders
+  document.addEventListener('DOMContentLoaded', function () {
+    var u = document.getElementById('id_username');
+    if (u && !u.placeholder) u.placeholder = 'name@example.com';
+    var p = document.getElementById('id_password');
+    if (p && !p.placeholder) p.placeholder = 'Password';
+  });
+</script>
 {% endblock %}

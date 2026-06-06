@@ -5,6 +5,7 @@ Routes requests to the core app and Django admin.
 
 from django.contrib import admin
 from django.urls import path, include
+from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -14,6 +15,12 @@ urlpatterns = [
     
     # API authentication
     path('api-auth/', include('rest_framework.urls')),
+    
+    # Logout alias for convenience
+    path('logout/', RedirectView.as_view(url='/accounts/logout/', permanent=False), name='logout-redirect'),
+    
+    # Django-allauth authentication (Google OAuth, social auth)
+    path('accounts/', include('allauth.urls')),
     
     # Core app routes (includes both frontend and API)
     path('', include('core.urls')),

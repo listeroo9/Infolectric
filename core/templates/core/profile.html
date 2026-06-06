@@ -3,51 +3,66 @@
 {% block title %}Profile - Infolectric{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-lg-4 mb-4">
-        <div class="card shadow-sm">
-            <div class="card-header">
-                <h5 class="mb-0">Your Profile</h5>
-            </div>
-            <div class="card-body">
-                <p><strong>Username:</strong> {{ user.username }}</p>
-                <p><strong>Email:</strong> {{ user.email|default:'Not provided' }}</p>
-                <p><strong>Date Joined:</strong> {{ user.date_joined|date:'F d, Y' }}</p>
-                <a href="{% url 'core:logout' %}" class="btn btn-danger w-100">Logout</a>
+<div class="container-lg">
+    <div class="row justify-content-center mb-4">
+        <div class="col-md-8 col-lg-6 text-center">
+            <div class="profile-header py-4">
+                <div class="avatar mb-3 mx-auto" style="width:96px;height:96px;border-radius:50%;background:linear-gradient(180deg,#e9eefc,#f7f9ff);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,0,0,0.06);">
+                    <i class="fas fa-user fa-2x text-secondary"></i>
+                </div>
+                <h3 class="mb-0">{{ user.get_full_name|default:user.username }}</h3>
+                <p class="text-muted small">Member since {{ user.date_joined|date:'F Y' }}</p>
             </div>
         </div>
     </div>
-    <div class="col-lg-8">
-        <div class="row g-4">
-            <div class="col-md-6">
-                <div class="card shadow-sm h-100">
-                    <div class="card-body">
-                        <h6>Saved Calculations</h6>
-                        <p class="text-muted">Your saved calculations will appear here once this feature is available.</p>
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Profile Summary</h5>
+                    <p class="mb-1"><strong>Username:</strong> {{ user.username }}</p>
+                    <p class="mb-1"><strong>Email:</strong> {{ user.email|default:'Not provided' }}</p>
+                    <p class="mb-0"><strong>Date Joined:</strong> {{ user.date_joined|date:'F d, Y' }}</p>
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#logoutModal">Logout</button>
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="card shadow-sm h-100">
-                    <div class="card-body">
-                        <h6>Favorite Components</h6>
-                        <p class="text-muted">Bookmark components for faster access as the app expands.</p>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <h6 class="card-title">Saved Calculations</h6>
+                            <p class="text-muted small">Your saved calculations will appear here once this feature is available.</p>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card shadow-sm h-100">
-                    <div class="card-body">
-                        <h6>Favorite Appliances</h6>
-                        <p class="text-muted">Favorites help you track appliance loads and compare selections quickly.</p>
+                <div class="col-md-6">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <h6 class="card-title">Favorite Components</h6>
+                            <p class="text-muted small">Bookmark components for faster access as the app expands.</p>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card shadow-sm h-100">
-                    <div class="card-body">
-                        <h6>Submission Requests</h6>
-                        <p class="text-muted">Submit appliance or component requests for review in future releases.</p>
+                <div class="col-md-6">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <h6 class="card-title">Favorite Appliances</h6>
+                            <p class="text-muted small">Favorites help you track appliance loads and compare selections quickly.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <h6 class="card-title">Submission Requests</h6>
+                            <p class="text-muted small">Submit appliance or component requests for review in future releases.</p>
+                        </div>
                     </div>
                 </div>
             </div>
