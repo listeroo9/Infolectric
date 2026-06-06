@@ -28,6 +28,126 @@
 
 <!-- QUICK ACCESS -->
 
+<!-- PRIMARY ACTIONS -->
+<section class="py-6">
+    <div class="container">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold">Quick Actions</h2>
+            <p class="text-muted">Jump straight into the tools you need</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-6 col-md-3">
+                <div class="card primary-card h-100 p-3 text-center">
+                    <div class="mb-3 fs-3 text-primary"><i class="fas fa-calculator fa-lg"></i></div>
+                    <h5 class="fw-bold">Calculator</h5>
+                    <p class="text-muted small">Wire recommendations and voltage drop.</p>
+                    <a href="{% url 'core:calculator' %}" class="btn btn-primary btn-sm mt-2">Open</a>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card primary-card h-100 p-3 text-center">
+                    <div class="mb-3 fs-3 text-success"><i class="fas fa-search fa-lg"></i></div>
+                    <h5 class="fw-bold">Wire Explorer</h5>
+                    <p class="text-muted small">Specs, ampacity and compatibility.</p>
+                    <a href="{% url 'core:calculator' %}" class="btn btn-success btn-sm mt-2">Open</a>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card primary-card h-100 p-3 text-center">
+                    <div class="mb-3 fs-3 text-info"><i class="fas fa-microchip fa-lg"></i></div>
+                    <h5 class="fw-bold">Components</h5>
+                    <p class="text-muted small">Browse the component DB.</p>
+                    <a href="{% url 'core:component-list' %}" class="btn btn-info btn-sm mt-2">Open</a>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card primary-card h-100 p-3 text-center">
+                    <div class="mb-3 fs-3" style="color: #ff7b54;"><i class="fas fa-plug-circle-bolt fa-lg"></i></div>
+                    <h5 class="fw-bold">Appliances</h5>
+                    <p class="text-muted small">Appliance power & specs.</p>
+                    <a href="{% url 'core:appliance-list' %}" class="btn btn-warning btn-sm mt-2">Open</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FUNDAMENTALS SECTION -->
+<section class="py-6 border-top">
+    <div class="container">
+        <div class="text-center mb-6">
+            <h2 class="fw-bold mb-2" style="font-size: 2.5rem;">Learn the Fundamentals</h2>
+            <p class="text-muted" style="font-size: 1.1rem;">Core concepts for safe, efficient electrical design</p>
+        </div>
+        <div class="fundamentals-label">Electrical Fundamentals</div>
+
+
+        <!-- Wire Sizing -->
+        <div class="fundamentals-item fundamentals-item-1">
+            <div class="row align-items-center g-5 g-lg-6">
+                <div class="col-lg-7 order-lg-1">
+                    <h2 class="fundamentals-title">Wire Sizing</h2>
+                    <p class="fundamentals-text">Wire sizing is the process of choosing a conductor cross-sectional area (AWG or mm²) so that the wire can safely carry the expected current (ampacity) without excessive heating. Proper sizing accounts for the expected continuous current, the wire material (copper or aluminum), insulation type, ambient temperature, and installation conditions.</p>
+                    <p class="fundamentals-text">It matters because undersized wires increase resistance, produce voltage drop over distance, reduce efficiency, and can overheat insulation leading to failure or fire. Designers use ampacity tables and account for run length and voltage drop to select the minimum safe wire size for a circuit.</p>
+                </div>
+                <div class="col-lg-5 order-lg-2 order-1">
+                    <div class="fundamentals-image-wrapper">
+                        <img src="{% static 'images/wire.png' %}" alt="Wire sizing illustration" class="fundamentals-image img-fluid">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current -->
+        <div class="fundamentals-item fundamentals-item-2">
+            <div class="row align-items-center g-5 g-lg-6">
+                <div class="col-lg-5 order-lg-1 order-1">
+                    <div class="fundamentals-image-wrapper">
+                        <img src="{% static 'images/current.png' %}" alt="Current illustration" class="fundamentals-image img-fluid">
+                    </div>
+                </div>
+                <div class="col-lg-7 order-lg-2 order-1 fundamentals-text-offset">
+                    <h2 class="fundamentals-title3">Current</h2>
+                    <p class="fundamentals-text">Current is the flow of electric charge measured in amperes (A); it represents how much load is being drawn through a conductor at any moment. In practical systems, current determines how large conductors and protective devices must be because the conductor must carry the expected load without exceeding its ampacity.</p>
+                    <p class="fundamentals-text">Excess current produces heat and can damage wiring and equipment, which is why circuits include fuses or circuit breakers sized to interrupt fault currents. Understanding both steady-state and fault currents helps select protective devices and ensure safe operation.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Voltage -->
+        <div class="fundamentals-item fundamentals-item-3">
+            <div class="row align-items-center g-5 g-lg-6">
+                <div class="col-lg-7 order-lg-1">
+                    <h2 class="fundamentals-title">Voltage</h2>
+                    <p class="fundamentals-text">Voltage is the electrical potential difference measured in volts (V) that drives current through a circuit; think of it as the pressure that moves charge. Different systems (USB, automotive, household mains) use different nominal voltages, and devices are rated to operate at specific voltages.</p>
+                    <p class="fundamentals-text">Voltage affects insulation requirements, clearances, and transformer or converter selection; it also interacts with current to determine power (P = V × I). Maintaining correct voltage levels and limiting voltage drop along conductors is essential for reliable device operation and safety.</p>
+                </div>
+                <div class="col-lg-5 order-lg-2 order-1">
+                    <div class="fundamentals-image-wrapper">
+                        <img src="{% static 'images/voltage.png' %}" alt="Voltage illustration" class="fundamentals-image img-fluid">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Power & Safety -->
+        <div class="fundamentals-item fundamentals-item-4">
+            <div class="row align-items-center g-5 g-lg-6">
+                <div class="col-lg-5 order-lg-1 order-1">
+                    <div class="fundamentals-image-wrapper">
+                        <img src="{% static 'images/safety.png' %}" alt="Power and safety illustration" class="fundamentals-image img-fluid">
+                    </div>
+                </div>
+                <div class="col-lg-7 order-lg-2 order-1 fundamentals-text-offset">
+                    <h2 class="fundamentals-title2">Power &amp; Safety</h2>
+                    <p class="fundamentals-text">Electrical power is the rate of energy transfer measured in watts (W) and is related to voltage and current by P = V × I. Calculating power lets you size supply circuits and estimate energy use — for example, converting appliance wattage into the current a circuit must provide.</p>
+                    <p class="fundamentals-text">Safety combines correct power handling with protective measures: proper grounding, correct wire sizing, overcurrent protection, and adherence to codes. Managing short-circuit currents, ensuring adequate insulation and ventilation, and using certified protective devices reduce the risk of overheating, fire, and electric shock.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- FEATURES SECTION -->
 <section id="features" class="py-6 border-top">
     <div class="container">
@@ -84,133 +204,29 @@
     </div>
 </section>
 
-<!-- PRIMARY ACTIONS -->
-<section class="py-6">
-    <div class="container">
-        <div class="text-center mb-4">
-            <h2 class="fw-bold">Quick Actions</h2>
-            <p class="text-muted">Jump straight into the tools you need</p>
-        </div>
-        <div class="row g-4">
-            <div class="col-6 col-md-3">
-                <div class="card primary-card h-100 p-3 text-center">
-                    <div class="mb-3 fs-3 text-primary"><i class="fas fa-calculator fa-lg"></i></div>
-                    <h5 class="fw-bold">Calculator</h5>
-                    <p class="text-muted small">Wire recommendations and voltage drop.</p>
-                    <a href="{% url 'core:calculator' %}" class="btn btn-primary btn-sm mt-2">Open</a>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="card primary-card h-100 p-3 text-center">
-                    <div class="mb-3 fs-3 text-success"><i class="fas fa-search fa-lg"></i></div>
-                    <h5 class="fw-bold">Wire Explorer</h5>
-                    <p class="text-muted small">Specs, ampacity and compatibility.</p>
-                    <a href="{% url 'core:calculator' %}" class="btn btn-success btn-sm mt-2">Open</a>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="card primary-card h-100 p-3 text-center">
-                    <div class="mb-3 fs-3 text-info"><i class="fas fa-microchip fa-lg"></i></div>
-                    <h5 class="fw-bold">Components</h5>
-                    <p class="text-muted small">Browse the component DB.</p>
-                    <a href="{% url 'core:component-list' %}" class="btn btn-info btn-sm mt-2">Open</a>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="card primary-card h-100 p-3 text-center">
-                    <div class="mb-3 fs-3" style="color: #ff7b54;"><i class="fas fa-plug-circle-bolt fa-lg"></i></div>
-                    <h5 class="fw-bold">Appliances</h5>
-                    <p class="text-muted small">Appliance power & specs.</p>
-                    <a href="{% url 'core:appliance-list' %}" class="btn btn-warning btn-sm mt-2">Open</a>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- FUNDAMENTALS SECTION -->
-<section class="py-6 border-top">
-    <div class="container">
-        <div class="text-center mb-5">
-            <h2 class="fw-bold mb-2">Learn the Fundamentals</h2>
-            <p class="text-muted">Core concepts for safe, efficient electrical design</p>
-        </div>
-        <div class="row g-5">
-            <div class="col-md-6">
-                <div class="d-flex gap-4">
-                    <div class="flex-shrink-0 pt-1">
-                        <div class="d-inline-flex align-items-center justify-content-center" style="width: 48px; height: 48px; border-radius: 10px; background: rgba(13, 110, 253, 0.1); color: #0d6efd;">
-                            <i class="fas fa-cable fs-6"></i>
-                        </div>
-                    </div>
-                    <div>
-                        <h5 class="fw-bold mb-1">Wire Sizing</h5>
-                        <p class="text-muted small mb-0">Choose conductor size to prevent overheating and voltage drop.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="d-flex gap-4">
-                    <div class="flex-shrink-0 pt-1">
-                        <div class="d-inline-flex align-items-center justify-content-center" style="width: 48px; height: 48px; border-radius: 10px; background: rgba(123, 60, 237, 0.1); color: #7c3ced;">
-                            <i class="fas fa-bolt fs-6"></i>
-                        </div>
-                    </div>
-                    <div>
-                        <h5 class="fw-bold mb-1">Current</h5>
-                        <p class="text-muted small mb-0">Current flow impacts wire selection and circuit protection.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="d-flex gap-4">
-                    <div class="flex-shrink-0 pt-1">
-                        <div class="d-inline-flex align-items-center justify-content-center" style="width: 48px; height: 48px; border-radius: 10px; background: rgba(13, 202, 240, 0.1); color: #0dcaf0;">
-                            <i class="fas fa-zap fs-6"></i>
-                        </div>
-                    </div>
-                    <div>
-                        <h5 class="fw-bold mb-1">Voltage</h5>
-                        <p class="text-muted small mb-0">Voltage and distance affect power delivery and efficiency.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="d-flex gap-4">
-                    <div class="flex-shrink-0 pt-1">
-                        <div class="d-inline-flex align-items-center justify-content-center" style="width: 48px; height: 48px; border-radius: 10px; background: rgba(25, 135, 84, 0.1); color: #198754;">
-                            <i class="fas fa-fire fs-6"></i>
-                        </div>
-                    </div>
-                    <div>
-                        <h5 class="fw-bold mb-1">Power & Safety</h5>
-                        <p class="text-muted small mb-0">Convert watts to amps and prioritize safe installations.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
 <!-- STATS SECTION -->
 <section class="py-6 border-top">
     <div class="container">
-        <div class="row text-center">
-            <div class="col-6 col-md-3 py-3">
-                <div class="display-6 fw-bold text-primary">{{ component_count }}</div>
-                <p class="text-muted small mt-2 mb-0">Components</p>
-            </div>
-            <div class="col-6 col-md-3 py-3 border-start border-end border-md-0">
-                <div class="display-6 fw-bold text-success">{{ category_count }}</div>
-                <p class="text-muted small mt-2 mb-0">Categories</p>
-            </div>
-            <div class="col-6 col-md-3 py-3 border-top border-md-0 border-start">
-                <div class="display-6 fw-bold text-info">{{ wiresize_count }}</div>
-                <p class="text-muted small mt-2 mb-0">Wire Sizes</p>
-            </div>
-            <div class="col-6 col-md-3 py-3 border-start border-top border-md-0">
-                <div class="display-6 fw-bold" style="color: #ff7b54;">{{ appliance_count }}</div>
-                <p class="text-muted small mt-2 mb-0">Appliances</p>
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 col-md-3 py-3">
+                        <div class="display-6 fw-bold text-primary">{{ component_count }}</div>
+                        <p class="text-muted small mt-2 mb-0">Components</p>
+                    </div>
+                    <div class="col-6 col-md-3 py-3 border-start border-end border-md-0">
+                        <div class="display-6 fw-bold text-success">{{ category_count }}</div>
+                        <p class="text-muted small mt-2 mb-0">Categories</p>
+                    </div>
+                    <div class="col-6 col-md-3 py-3 border-top border-md-0 border-start">
+                        <div class="display-6 fw-bold text-info">{{ wiresize_count }}</div>
+                        <p class="text-muted small mt-2 mb-0">Wire Sizes</p>
+                    </div>
+                    <div class="col-6 col-md-3 py-3 border-start border-top border-md-0">
+                        <div class="display-6 fw-bold" style="color: #ff7b54;">{{ appliance_count }}</div>
+                        <p class="text-muted small mt-2 mb-0">Appliances</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -333,6 +349,177 @@
         border-color: #c49a00;
         color: #212529;
     }
+
+    /* Fundamentals section article-style layout */
+    .fundamentals-item {
+        padding-top: 5rem;
+        padding-bottom: 5rem;
+        border-radius: 0;
+    }
+
+    .fundamentals-item-1,
+    .fundamentals-item-3 {
+        background: transparent;
+    }
+
+    .fundamentals-item-2,
+    .fundamentals-item-4 {
+        background: rgba(255, 255, 255, 0.25);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+    }
+
+    .fundamentals-label {
+        display: inline-block;
+        font-size: 1.5rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #6c757d;
+        margin-top: 0%;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #0d6efd;
+        margin-left: 35%
+    }
+
+    .fundamentals-title {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1.3;
+        margin-bottom: 1.5rem;
+        margin-top: 0.5rem;
+    }
+
+    .fundamentals-title2 {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1.3;
+        margin-bottom: 1.5rem;
+        margin-top: 0.5rem;
+        margin-left: 65%;
+    }
+
+    .fundamentals-title3 {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1.3;
+        margin-bottom: 1.5rem;
+        margin-top: 0.5rem;
+        margin-left: 75%;
+    }
+
+    .fundamentals-text {
+        font-size: 1.15rem;
+        line-height: 1.9;
+        margin-bottom: 1.5rem;
+        color: #495057;
+        max-width: 700px;
+    }
+
+    .fundamentals-text:last-of-type {
+        margin-bottom: 0;
+    }
+
+    .fundamentals-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+    }
+
+    .fundamentals-image-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 420px;
+    }
+
+    .fundamentals-image {
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        object-fit: contain;
+        display: block;
+        border-radius: 12px;
+        filter: drop-shadow(0 6px 18px rgba(0,0,0,0.08));
+    }
+
+    /* Responsive adjustments for tablet and mobile */
+    @media (max-width: 991.98px) {
+        .fundamentals-item {
+            padding-top: 4rem;
+            padding-bottom: 4rem;
+        }
+
+        .fundamentals-title {
+            font-size: 1.75rem;
+        }
+
+        .fundamentals-text {
+            font-size: 1.08rem;
+            line-height: 1.8;
+        }
+
+        .fundamentals-image-placeholder {
+            height: 360px;
+            margin-top: 2rem;
+        }
+
+        .order-2 {
+            order: 2 !important;
+        }
+
+        .order-1 {
+            order: 1 !important;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .fundamentals-item {
+            padding-top: 3rem;
+            padding-bottom: 3rem;
+        }
+
+        .fundamentals-item-2,
+        .fundamentals-item-4 {
+            background: transparent;
+        }
+
+        .fundamentals-label {
+            font-size: 0.8rem;
+        }
+
+        .fundamentals-title {
+            font-size: 1.5rem;
+        }
+
+        .fundamentals-text {
+            font-size: 1rem;
+            line-height: 1.7;
+            max-width: 100%;
+        }
+
+        .fundamentals-image-placeholder {
+            height: 280px;
+            font-size: 3rem;
+        }
+    }
+
+    /* Grid gap adjustments for better spacing on larger screens */
+    @media (min-width: 992px) {
+        .g-lg-6 {
+            --bs-gutter-x: 3rem;
+            --bs-gutter-y: 0;
+        }
+        .fundamentals-text-offset {
+            padding-left: 3rem;
+        }
+    }
+
 </style>
 {% endblock %}
 {% endblock %}
