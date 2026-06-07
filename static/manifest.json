@@ -1,0 +1,22 @@
+{
+    "name": "Infolectric",
+    "short_name": "Infolectric",
+    "description": "Electrical calculations, components, appliances, and information.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#2563eb",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/static/images/Apps_logo1.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/static/images/Apps_logo.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
