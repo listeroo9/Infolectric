@@ -5,11 +5,13 @@
 {% block content %}
 <div class="page-header">
     <h1><i class="fas fa-cable"></i> Wire Size Reference</h1>
-    {% if can_manage_wires %}
-        <a href="{% url 'core:wiresize-create' %}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Add Wire Size
-        </a>
-    {% endif %}
+    <div class="d-flex gap-2 flex-wrap">
+        {% if user.is_authenticated %}
+            <a href="{% url 'core:wiresize-create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> {% if user.is_staff or user.is_superuser %}Add Wire Size{% else %}Request Add Wire Size{% endif %}
+            </a>
+        {% endif %}
+    </div>
 </div>
 
 <div class="card mb-4">
@@ -51,11 +53,11 @@
                             <a href="{% url 'core:wiresize-detail' wire.pk %}" class="btn btn-sm btn-primary" title="View">
                                 <i class="fas fa-eye"></i>
                             </a>
-                            {% if can_manage_wires %}
-                                <a href="{% url 'core:wiresize-update' wire.pk %}" class="btn btn-sm btn-warning" title="Edit">
+                            {% if user.is_authenticated %}
+                                <a href="{% url 'core:wiresize-update' wire.pk %}" class="btn btn-sm btn-warning" title="{% if user.is_staff or user.is_superuser %}Edit{% else %}Request Edit{% endif %}">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <a href="{% url 'core:wiresize-delete' wire.pk %}" class="btn btn-sm btn-danger" title="Delete">
+                                <a href="{% url 'core:wiresize-delete' wire.pk %}" class="btn btn-sm btn-danger" title="{% if user.is_staff or user.is_superuser %}Delete{% else %}Request Delete{% endif %}">
                                     <i class="fas fa-trash"></i>
                                 </a>
                             {% endif %}

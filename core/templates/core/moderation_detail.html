@@ -1,0 +1,141 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Moderate Request - Infolectric{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-gavel"></i> Moderate Request</h1>
+</div>
+
+<div class="page-header2">
+    <div>
+        <a href="{% url 'core:moderation-request-list' %}" class="glass-btn">
+            <i class="fas fa-arrow-left"></i> Back to Moderation
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between flex-column flex-md-row gap-3">
+            <div>
+                <h4>{{ request_item.title }}</h4>
+                <p class="text-muted mb-1">{{ request_item.get_request_type_display }} for {{ request_item.get_target_model_display }}</p>
+                {% if target_object %}
+                    <p class="mb-0">Target: {{ target_object }}</p>
+                {% endif %}
+            </div>
+            <div class="text-md-end">
+                <span class="badge bg-secondary">{{ request_item.get_status_display }}</span>
+                <p class="mb-0 small text-muted">Submitted {{ request_item.created_at|date:'M d, Y' }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5>Request Information</h5>
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Request Type</dt>
+                    <dd class="col-sm-8">{{ request_item.get_request_type_display }}</dd>
+
+                    <dt class="col-sm-4">Target Model</dt>
+                    <dd class="col-sm-8">{{ request_item.get_target_model_display }}</dd>
+
+                    <dt class="col-sm-4">Target Object</dt>
+                    <dd class="col-sm-8">{% if target_object %}{{ target_object }}{% else %}<span class="text-muted">N/A</span>{% endif %}</dd>
+
+                    <dt class="col-sm-4">Submitted By</dt>
+                    <dd class="col-sm-8">{{ request_item.user.username }}</dd>
+
+                    <dt class="col-sm-4">Date Submitted</dt>
+                    <dd class="col-sm-8">{{ request_item.created_at|date:'M d, Y' }}</dd>
+
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">{{ request_item.get_status_display }}</dd>
+                </dl>
+            </div>
+        </div>
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5>Reason</h5>
+                <p>{{ request_item.reason|linebreaks }}</p>
+            </div>
+        </div>
+        {% if request_item.payload or request_item.request_type == 'delete' %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5>Change Summary</h5>
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Old</th>
+                                <th>New</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for label, old, new in request_item.get_change_summary %}
+                                <tr>
+                                    <td>{{ label }}</td>
+                                    <td>{% if old is not None %}{{ old }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                                    <td>{% if new is not None %}{{ new }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5>Moderation Information</h5>
+                <p><strong>Requested by:</strong> {{ request_item.user.username }}</p>
+                {% if request_item.approved_by %}
+                    <p><strong>Approved By:</strong> {{ request_item.approved_by.username }}</p>
+                    <p><strong>Approved At:</strong> {{ request_item.approved_at|date:'M d, Y H:i' }}</p>
+                {% endif %}
+                {% if request_item.rejected_by %}
+                    <p><strong>Rejected By:</strong> {{ request_item.rejected_by.username }}</p>
+                    <p><strong>Rejected At:</strong> {{ request_item.rejected_at|date:'M d, Y H:i' }}</p>
+                {% endif %}
+                {% if request_item.admin_notes %}
+                    <hr>
+                    <h6>Admin Notes</h6>
+                    <p>{{ request_item.admin_notes|linebreaks }}</p>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5>Review Actions</h5>
+                {% if request_item.is_pending %}
+                    <form method="post" action="{% url 'core:moderation-request-approve' request_item.pk %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Admin Notes (optional)</label>
+                            <textarea name="admin_notes" class="form-control" rows="3">{{ request_item.admin_notes }}</textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100 mb-2"><i class="fas fa-check"></i> Approve</button>
+                    </form>
+                    <form method="post" action="{% url 'core:moderation-request-reject' request_item.pk %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Admin Notes (optional)</label>
+                            <textarea name="admin_notes" class="form-control" rows="3">{{ request_item.admin_notes }}</textarea>
+                        </div>
+                        <button type="submit" class="btn btn-danger w-100"><i class="fas fa-times"></i> Reject</button>
+                    </form>
+                {% else %}
+                    <div class="alert alert-info">This request has already been {{ request_item.get_status_display|lower }}.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

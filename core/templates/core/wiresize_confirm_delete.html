@@ -20,14 +20,22 @@
                     <strong>Wire Size:</strong> {{ wire_size.wire_size_mm2 }}mm² ({{ wire_size.max_ampacity }}A)
                 </div>
 
-                <form method="post" class="d-grid gap-2 d-md-flex">
+                <form method="post" class="d-grid gap-2 d-md-flex flex-column">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash"></i> Yes, Delete Wire Size
-                    </button>
-                    <a href="{% url 'core:wiresize-detail' wire_size.pk %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left"></i> Cancel
-                    </a>
+                    {% if not user.is_staff and not user.is_superuser %}
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">Reason for deletion request</label>
+                            <textarea id="reason" name="reason" class="form-control" rows="3">{{ request.POST.reason }}</textarea>
+                        </div>
+                    {% endif %}
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Yes, Delete Wire Size
+                        </button>
+                        <a href="{% url 'core:wiresize-detail' wire_size.pk %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Cancel
+                        </a>
+                    </div>
                 </form>
             </div>
         </div>

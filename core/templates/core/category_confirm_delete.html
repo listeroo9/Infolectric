@@ -27,14 +27,22 @@
                     </div>
                 {% endif %}
 
-                <form method="post" class="d-grid gap-2 d-md-flex">
+                <form method="post" class="d-grid gap-2 d-md-flex flex-column">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash"></i> Yes, Delete Category
-                    </button>
-                    <a href="{% url 'core:category-detail' category.pk %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left"></i> Cancel
-                    </a>
+                    {% if not user.is_staff and not user.is_superuser %}
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">Reason for deletion request</label>
+                            <textarea id="reason" name="reason" class="form-control" rows="3">{{ request.POST.reason }}</textarea>
+                        </div>
+                    {% endif %}
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Yes, Delete Category
+                        </button>
+                        <a href="{% url 'core:category-detail' category.pk %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Cancel
+                        </a>
+                    </div>
                 </form>
             </div>
         </div>

@@ -4,7 +4,7 @@ Register models for admin interface.
 """
 
 from django.contrib import admin
-from .models import Component, Category, WireSize
+from .models import Component, Category, WireSize, ChangeRequest
 from .models import ApplianceLoad
 
 
@@ -76,4 +76,29 @@ class ApplianceLoadAdmin(admin.ModelAdmin):
         ('Basic', {'fields': ('name', 'category')}),
         ('Specs', {'fields': ('power_watts', 'voltage', 'estimated_current')}),
         ('Timestamps', {'fields': ('created_at', 'updated_at'), 'classes': ('collapse',)}),
+    )
+
+
+@admin.register(ChangeRequest)
+class ChangeRequestAdmin(admin.ModelAdmin):
+    """Admin interface for user change requests."""
+    list_display = ['title', 'request_type', 'target_model', 'status', 'user', 'created_at']
+    list_filter = ['status', 'request_type', 'target_model', 'created_at']
+    search_fields = ['title', 'reason', 'admin_notes', 'user__username']
+    readonly_fields = ['created_at', 'updated_at', 'approved_at', 'rejected_at', 'cancelled_at']
+    ordering = ['-created_at']
+    fieldsets = (
+        ('Request Information', {
+            'fields': ('request_type', 'target_model', 'target_object_id', 'title', 'reason')
+        }),
+        ('User & Status', {
+            'fields': ('user', 'status', 'approved_by', 'approved_at', 'rejected_by', 'rejected_at', 'cancelled_at')
+        }),
+        ('Admin Notes & Payload', {
+            'fields': ('admin_notes', 'payload')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
     )

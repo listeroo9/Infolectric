@@ -1,0 +1,144 @@
+{% extends 'core/base.html' %}
+
+{% block title %}My Requests - Infolectric{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-inbox"></i> My Requests</h1>
+</div>
+
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card p-3">
+            <h6>Pending</h6>
+            <p class="display-6 mb-0">{{ status_counts.pending|default:0 }}</p>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card p-3">
+            <h6>Approved</h6>
+            <p class="display-6 mb-0">{{ status_counts.approved|default:0 }}</p>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card p-3">
+            <h6>Rejected</h6>
+            <p class="display-6 mb-0">{{ status_counts.rejected|default:0 }}</p>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card p-3">
+            <h6>Cancelled</h6>
+            <p class="display-6 mb-0">{{ status_counts.cancelled|default:0 }}</p>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end mb-3">
+            <div class="col-md-3 col-sm-6">
+                <label for="request_type" class="form-label small">Request Type</label>
+                <select id="request_type" name="request_type" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    {% for value, label in request_type_choices %}
+                        <option value="{{ value }}" {% if request.GET.request_type == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <label for="target_model" class="form-label small">Target Model</label>
+                <select id="target_model" name="target_model" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    {% for value, label in target_model_choices %}
+                        <option value="{{ value }}" {% if request.GET.target_model == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <label for="status" class="form-label small">Status</label>
+                <select id="status" name="status" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <label class="form-label small">Actions</label>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm flex-fill">
+                        Apply
+                    </button>
+                    <a href="{% url 'core:request-list' %}" class="btn btn-outline-secondary btn-sm flex-fill">
+                        Clear
+                    </a>
+                </div>
+            </div>
+        </form>
+        <p class="text-muted small mb-3">Showing {{ results_count }} request{{ results_count|pluralize }}</p>
+        {% if requests %}
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Target</th>
+                            <th>Title</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for request_item in requests %}
+                            <tr>
+                                <td>{{ request_item.get_request_type_display }}</td>
+                                <td>{{ request_item.get_target_model_display }}</td>
+                                <td>{{ request_item.title }}</td>
+                                <td>{{ request_item.created_at|date:'M d, Y' }}</td>
+                                <td>
+                                    {% if request_item.status == 'approved' %}
+                                        <span class="badge bg-success">{{ request_item.get_status_display }}</span>
+                                    {% elif request_item.status == 'rejected' %}
+                                        <span class="badge bg-danger">{{ request_item.get_status_display }}</span>
+                                    {% elif request_item.status == 'cancelled' %}
+                                        <span class="badge bg-warning text-dark">{{ request_item.get_status_display }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ request_item.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="{% url 'core:request-detail' request_item.pk %}" class="btn btn-sm btn-outline-primary">View</a>
+                                    {% if request_item.is_pending %}
+                                        <a href="{% url 'core:request-edit' request_item.pk %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if is_paginated %}
+                <nav aria-label="Request pagination">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item"><a class="page-link" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Previous</a></li>
+                        {% endif %}
+                        {% for num in paginator.page_range %}
+                            <li class="page-item {% if page_obj.number == num %}active{% endif %}"><a class="page-link" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ num }}">{{ num }}</a></li>
+                        {% endfor %}
+                        {% if page_obj.has_next %}
+                            <li class="page-item"><a class="page-link" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Next</a></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-info mb-0">
+                You have not submitted any requests yet or it might be no requests match the current filter criteria.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

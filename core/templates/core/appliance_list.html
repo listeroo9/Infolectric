@@ -2,11 +2,15 @@
 
 {% block content %}
 <div class="container py-4">
-  <div class="d-flex justify-content-between align-items-center">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
     <h2>Appliances</h2>
-    {% if can_manage_appliances %}
-        <a href="{% url 'core:appliance-create' %}" class="btn btn-primary">Add Appliance</a>
-    {% endif %}
+    <div class="d-flex gap-2 flex-wrap">
+        {% if user.is_authenticated %}
+          <a href="{% url 'core:appliance-create' %}" class="btn btn-primary"> 
+            {% if user.is_staff or user.is_superuser %}Add Appliance{% else %}Request Add Appliance{% endif %}
+          </a>
+        {% endif %}
+    </div>
   </div>
 
   <table class="table mt-3">
@@ -21,9 +25,9 @@
         <td>{{ a.voltage }}</td>
         <td>{{ a.estimated_current }}</td>
         <td>
-          {% if can_manage_appliances %}
-            <a href="{% url 'core:appliance-update' a.pk %}" class="btn btn-sm btn-secondary">Edit</a>
-            <a href="{% url 'core:appliance-delete' a.pk %}" class="btn btn-sm btn-danger">Delete</a>
+          {% if user.is_authenticated %}
+            <a href="{% url 'core:appliance-update' a.pk %}" class="btn btn-sm btn-secondary" title="{% if user.is_staff or user.is_superuser %}Edit{% else %}Request Edit{% endif %}">{% if user.is_staff or user.is_superuser %}Edit{% else %}Request Edit{% endif %}</a>
+            <a href="{% url 'core:appliance-delete' a.pk %}" class="btn btn-sm btn-danger" title="{% if user.is_staff or user.is_superuser %}Delete{% else %}Request Delete{% endif %}">{% if user.is_staff or user.is_superuser %}Delete{% else %}Request Delete{% endif %}</a>
           {% endif %}
         </td>
       </tr>

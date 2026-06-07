@@ -61,7 +61,8 @@
                     <div class="card h-100 shadow-sm">
                         <div class="card-body">
                             <h6 class="card-title">Submission Requests</h6>
-                            <p class="text-muted small">Submit appliance or component requests for review in future releases.</p>
+                            <p class="text-muted small">You have submitted <strong>{{ submission_requests_count }}</strong> requests.</p>
+                            <a href="{% url 'core:request-list' %}" class="btn btn-primary btn-sm mt-2">View My Requests</a>
                         </div>
                     </div>
                 </div>

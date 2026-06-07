@@ -8,7 +8,7 @@ from decimal import Decimal
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
-from core.models import ApplianceLoad, Component, Category, WireSize
+from core.models import ApplianceLoad, Component, Category, WireSize, ChangeRequest
 from core import services
 
 
@@ -180,6 +180,46 @@ class ComponentViewTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '10kΩ Resistor')
+
+
+class RequestWorkflowTest(TestCase):
+    """Test change request submission and approval workflow."""
+
+    def setUp(self):
+        self.client = Client()
+        self.category = Category.objects.create(name='Resistors')
+        self.user = User.objects.create_user(username='user', email='user@test.com', password='testpass123')
+        self.admin = User.objects.create_superuser(username='admin', email='admin@test.com', password='testpass123')
+
+    def test_user_can_submit_add_component_request(self):
+        self.client.login(username='user', password='testpass123')
+        response = self.client.post(reverse('core:component-create'), {
+            'name': '1kΩ Resistor',
+            'description': 'Standard 1kΩ resistor',
+            'category': self.category.pk,
+        })
+        self.assertEqual(response.status_code, 302)
+        # Component create by non-staff should create a ChangeRequest with title equal to the name
+        self.assertTrue(ChangeRequest.objects.filter(title='1kΩ Resistor', user=self.user).exists())
+
+    def test_admin_approves_request_creates_component(self):
+        self.client.login(username='user', password='testpass123')
+        response = self.client.post(reverse('core:component-create'), {
+            'name': '2kΩ Resistor',
+            'description': 'Standard 2kΩ resistor',
+            'category': self.category.pk,
+        })
+        self.assertEqual(response.status_code, 302)
+        request_obj = ChangeRequest.objects.get(title='2kΩ Resistor')
+        self.client.logout()
+        self.client.login(username='admin', password='testpass123')
+        response = self.client.post(reverse('core:moderation-request-approve', kwargs={'pk': request_obj.pk}), {
+            'admin_notes': 'Looks good',
+        })
+        self.assertEqual(response.status_code, 302)
+        request_obj.refresh_from_db()
+        self.assertEqual(request_obj.status, ChangeRequest.STATUS_APPROVED)
+        self.assertTrue(Component.objects.filter(name='2kΩ Resistor').exists())
 
 
 class CategoryViewTest(TestCase):

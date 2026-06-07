@@ -6,6 +6,12 @@
   <p>Are you sure you want to delete '{{ object.name }}'?</p>
   <form method="post">
     {% csrf_token %}
+    {% if not user.is_staff and not user.is_superuser %}
+      <div class="mb-3">
+        <label for="reason" class="form-label">Reason for deletion request</label>
+        <textarea id="reason" name="reason" class="form-control" rows="3">{{ request.POST.reason }}</textarea>
+      </div>
+    {% endif %}
     <button class="btn btn-danger">Confirm Delete</button>
     <a href="{% url 'core:appliance-list' %}" class="btn btn-secondary">Cancel</a>
   </form>

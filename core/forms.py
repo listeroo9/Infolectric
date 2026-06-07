@@ -8,7 +8,7 @@ from decimal import Decimal
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm
-from .models import Component, Category, WireSize
+from .models import Component, Category, WireSize, ChangeRequest
 from .models import ApplianceLoad
 from . import services
 
@@ -242,6 +242,122 @@ class ApplianceLoadForm(forms.ModelForm):
             'voltage': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any'}),
             'power_watts': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any'}),
             'category': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+
+class ChangeRequestForm(forms.ModelForm):
+    target_object = forms.ModelChoiceField(
+        queryset=Component.objects.none(),
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
+    class Meta:
+        model = ChangeRequest
+        fields = ['request_type', 'target_model', 'target_object', 'title', 'reason']
+        widgets = {
+            'request_type': forms.Select(attrs={'class': 'form-select'}),
+            'target_model': forms.Select(attrs={'class': 'form-select'}),
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter request title'}),
+            'reason': forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Why is this change needed?', 'rows': 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        target_model = kwargs.pop('target_model', None)
+        request_type = kwargs.pop('request_type', None)
+        super().__init__(*args, **kwargs)
+        if target_model:
+            self.fields['target_model'].initial = target_model
+            self.fields['target_object'].queryset = self.get_target_queryset(target_model)
+        if request_type:
+            self.fields['request_type'].initial = request_type
+            self.fields['target_object'].required = request_type in {ChangeRequest.REQUEST_TYPE_EDIT, ChangeRequest.REQUEST_TYPE_DELETE}
+
+    def get_target_queryset(self, target_model):
+        if target_model == ChangeRequest.TARGET_MODEL_COMPONENT:
+            return Component.objects.all()
+        if target_model == ChangeRequest.TARGET_MODEL_APPLIANCE:
+            return ApplianceLoad.objects.all()
+        if target_model == ChangeRequest.TARGET_MODEL_WIRESIZE:
+            return WireSize.objects.all()
+        if target_model == ChangeRequest.TARGET_MODEL_CATEGORY:
+            return Category.objects.all()
+        return Component.objects.none()
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        target_object = self.cleaned_data.get('target_object')
+        instance.target_object_id = target_object.pk if target_object else None
+        if commit:
+            instance.save()
+        return instance
+
+
+class ChangeRequestReasonForm(forms.ModelForm):
+    class Meta:
+        model = ChangeRequest
+        fields = ['reason']
+        widgets = {
+            'reason': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': 'Explain why this change is needed.',
+                'rows': 4
+            }),
+        }
+
+
+class ComponentRequestPayloadForm(forms.ModelForm):
+    class Meta:
+        model = Component
+        fields = ['name', 'description', 'category']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'category': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+
+class ApplianceLoadRequestPayloadForm(forms.ModelForm):
+    class Meta:
+        model = ApplianceLoad
+        fields = ['name', 'voltage', 'power_watts', 'category']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'voltage': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any'}),
+            'power_watts': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any'}),
+            'category': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+
+class WireSizeRequestPayloadForm(forms.ModelForm):
+    class Meta:
+        model = WireSize
+        fields = ['wire_size_mm2', 'max_ampacity', 'description']
+        widgets = {
+            'wire_size_mm2': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'max_ampacity': forms.NumberInput(attrs={'class': 'form-control', 'step': '1'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+
+class CategoryRequestPayloadForm(forms.ModelForm):
+    class Meta:
+        model = Category
+        fields = ['name', 'description']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+        }
+
+
+class RequestAdminForm(forms.ModelForm):
+    class Meta:
+        model = ChangeRequest
+        fields = ['title', 'reason', 'admin_notes']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'reason': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'admin_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 
 

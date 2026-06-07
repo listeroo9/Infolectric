@@ -1,0 +1,125 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Request Details - Infolectric{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-file-alt"></i> Request Details</h1>
+</div>
+<div class="page-header2">
+    <div>
+        <a href="{% url 'core:request-list' %}" class="glass-btn">
+            <i class="fas fa-arrow-left"></i> Back to Requests
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start flex-column flex-md-row gap-3">
+            <div>
+                <h4>{{ request_item.title }}</h4>
+                <p class="text-muted mb-1">{{ request_item.get_request_type_display }} for {{ request_item.get_target_model_display }}</p>
+                {% if target_object %}
+                    <p class="mb-0">Target: {{ target_object }}</p>
+                {% endif %}
+            </div>
+            <div class="text-md-end">
+                <span class="badge bg-info text-dark">{{ request_item.get_status_display }}</span>
+                <p class="mb-0 small text-muted">Submitted {{ request_item.created_at|date:'M d, Y' }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-10 col-lg-8">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="mb-3">Request Information</h5>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Request Type</dt>
+                        <dd class="col-sm-8">{{ request_item.get_request_type_display }}</dd>
+
+                        <dt class="col-sm-4">Target Model</dt>
+                        <dd class="col-sm-8">{{ request_item.get_target_model_display }}</dd>
+
+                        <dt class="col-sm-4">Target Object</dt>
+                        <dd class="col-sm-8">{% if target_object %}{{ target_object }}{% else %}<span class="text-muted">N/A</span>{% endif %}</dd>
+
+                        <dt class="col-sm-4">Submitted By</dt>
+                        <dd class="col-sm-8">{{ request_item.user.username }}</dd>
+
+                        <dt class="col-sm-4">Date Submitted</dt>
+                        <dd class="col-sm-8">{{ request_item.created_at|date:'M d, Y' }}</dd>
+
+                        <dt class="col-sm-4">Status</dt>
+                        <dd class="col-sm-8">{{ request_item.get_status_display }}</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="mb-3">Reason</h5>
+                    <p class="mb-0">{{ request_item.reason|linebreaks }}</p>
+                </div>
+            </div>
+
+            {% if request_item.payload or request_item.request_type == 'delete' %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="mb-3">Change Summary</h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Field</th>
+                                        <th>Old</th>
+                                        <th>New</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for label, old, new in request_item.get_change_summary %}
+                                        <tr>
+                                            <td>{{ label }}</td>
+                                            <td>{% if old is not None %}{{ old }}{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
+                                            <td>{% if new is not None %}{{ new }}{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            <div class="d-flex gap-2 mb-4">
+                {% if user == request_item.user and request_item.is_pending and not user.is_staff and not user.is_superuser %}
+
+                    <a href="{% url 'core:request-edit' request_item.pk %}" class="btn btn-primary">
+                        Update Reason
+                    </a>
+
+                    <form method="post" action="{% url 'core:request-cancel' request_item.pk %}" class="m-0 p-0">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            Cancel Request
+                        </button>
+                    </form>
+
+                {% endif %}
+            </div>
+
+            {% if request_item.admin_notes %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h6 class="mb-2">Admin Feedback</h6>
+                        <p class="mb-0">{{ request_item.admin_notes|linebreaks }}</p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

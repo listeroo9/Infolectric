@@ -58,6 +58,16 @@
                     {% endif %}
                 </div>
 
+                {% if not user.is_staff and not user.is_superuser %}
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">
+                            Reason for {% if form.instance.pk %}requested change{% else %}request{% endif %}
+                            <span class="text-danger">*</span>
+                        </label>
+                        <textarea id="reason" name="reason" class="form-control" rows="3">{{ request.POST.reason }}</textarea>
+                    </div>
+                {% endif %}
+
                 <!-- SUBMIT BUTTONS -->
                 <div class="d-grid gap-2 d-md-flex justify-content-md-start">
                     <button type="submit" class="btn btn-primary">

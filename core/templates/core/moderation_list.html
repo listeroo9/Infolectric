@@ -1,0 +1,155 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Moderation Requests - Infolectric{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-gavel"></i> Moderation Requests</h1>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Request Type</label>
+                <select class="form-select" name="request_type">
+                    <option value="">All</option>
+                    {% for value, label in request_types %}
+                        <option value="{{ value }}" {% if filter_values.request_type == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Target Model</label>
+                <select class="form-select" name="target_model">
+                    <option value="">All</option>
+                    {% for value, label in target_models %}
+                        <option value="{{ value }}" {% if filter_values.target_model == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select class="form-select" name="status">
+                    <option value="">All</option>
+                    {% for value, label in statuses %}
+                        <option value="{{ value }}" {% if filter_values.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">User</label>
+                <input type="text" name="user" class="form-control" value="{{ filter_values.user }}" placeholder="Username" />
+            </div>
+            <div class="col-12 text-end">
+                <button type="submit" class="btn btn-primary">Filter</button>
+                <a href="{% url 'core:moderation-request-list' %}" class="btn btn-outline-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+            {% if pending_create_requests or pending_edit_requests or pending_delete_requests %}
+                <div class="mb-4">
+                    <h5>Pending Requests Summary</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card border-warning mb-2">
+                                <div class="card-body">
+                                    <h6 class="card-title">Create Requests ({{ pending_create_requests.count }})</h6>
+                                    <ul class="list-unstyled small mb-0">
+                                        {% for req in pending_create_requests|slice:":5" %}
+                                            <li>{{ req.title }} — {{ req.user.username }} — {{ req.created_at|date:'M d' }}</li>
+                                        {% empty %}
+                                            <li class="text-muted">None</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-info mb-2">
+                                <div class="card-body">
+                                    <h6 class="card-title">Edit Requests ({{ pending_edit_requests.count }})</h6>
+                                    <ul class="list-unstyled small mb-0">
+                                        {% for req in pending_edit_requests|slice:":5" %}
+                                            <li>{{ req.title }} — {{ req.user.username }} — {{ req.created_at|date:'M d' }}</li>
+                                        {% empty %}
+                                            <li class="text-muted">None</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-danger mb-2">
+                                <div class="card-body">
+                                    <h6 class="card-title">Delete Requests ({{ pending_delete_requests.count }})</h6>
+                                    <ul class="list-unstyled small mb-0">
+                                        {% for req in pending_delete_requests|slice:":5" %}
+                                            <li>{{ req.title }} — {{ req.user.username }} — {{ req.created_at|date:'M d' }}</li>
+                                        {% empty %}
+                                            <li class="text-muted">None</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if requests %}
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Target</th>
+                            <th>User</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for request_item in requests %}
+                            <tr>
+                                <td>{{ request_item.title }}</td>
+                                <td>{{ request_item.get_request_type_display }}</td>
+                                <td>{{ request_item.get_target_model_display }}</td>
+                                <td>{{ request_item.user.username }}</td>
+                                <td>{{ request_item.get_status_display }}</td>
+                                <td>{{ request_item.created_at|date:'M d, Y' }}</td>
+                                <td class="text-end">
+                                    <a href="{% url 'core:moderation-request-detail' request_item.pk %}" class="btn btn-sm btn-outline-primary">Review</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if is_paginated %}
+                <nav aria-label="Moderation pagination">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+                        {% endif %}
+                        {% for num in paginator.page_range %}
+                            <li class="page-item {% if page_obj.number == num %}active{% endif %}"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                        {% endfor %}
+                        {% if page_obj.has_next %}
+                            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-info mb-0">No moderation requests match the current filter.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

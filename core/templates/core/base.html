@@ -13,6 +13,46 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
+        .glass-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 0%;
+
+            padding: 10px 16px;
+            border-radius: 12px;
+
+            color: #000000;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            white-space: nowrap;
+
+            background:linear-gradient(90deg, #2564ebd3 0%, #2564eb44 100%);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+        }
+
+        .glass-btn:hover,
+        .glass-btn:focus-visible {
+            transform: translateY(-2px);
+            background: linear-gradient(90deg, #27a4f7d3 0%, #28b0ff44 100%);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+            color: #000000;
+            outline: none;
+        }
+
+        .glass-btn:active {
+            transform: translateY(0px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+        }
+
         :root {
             --primary-color: #1e40af;
             --secondary-color: #dc2626;
@@ -436,7 +476,6 @@
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
-            height: 100%;
         }
         
         .card:hover {
@@ -508,13 +547,22 @@
             border: none;
         }
         
-        .page-header {
+        .page-header,
+        .page-header2 {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
             padding-bottom: 1.5rem;
             border-bottom: 2px solid #dee2e6;
+        }
+
+        .page-header {
+            margin-top: 3%;
+        }
+
+        .page-header2 {
+            margin-bottom: 2rem;
         }
         
         .page-header h1 {
@@ -628,6 +676,18 @@
                         <i class="fas fa-user fa-fw"></i>
                         <span class="label-text">Profile</span>
                     </a>
+                    {% if not user.is_staff and not user.is_superuser %}
+                        <a href="{% url 'core:request-list' %}" title="My Requests" class="sidebar-link {% if request.resolver_match.view_name == 'core:request-list' %}active{% endif %}">
+                            <i class="fas fa-inbox fa-fw"></i>
+                            <span class="label-text">My Requests</span>
+                        </a>
+                    {% endif %}
+                    {% if can_manage_requests %}
+                        <a href="{% url 'core:moderation-request-list' %}" title="Moderation" class="sidebar-link {% if request.resolver_match.view_name == 'core:moderation-request-list' %}active{% endif %}">
+                            <i class="fas fa-gavel fa-fw"></i>
+                            <span class="label-text">Moderation</span>
+                        </a>
+                    {% endif %}
                     <a href="#" title="Logout" class="sidebar-link" data-bs-toggle="modal" data-bs-target="#logoutModal">
                         <i class="fas fa-sign-out-alt fa-fw"></i>
                         <span class="label-text">Logout</span>
@@ -692,6 +752,7 @@
                 '.primary-card',
                 '.feature-card',
                 '.page-header',
+                '.page-header2',
                 '.stats-card',
                 '.alert',
                 '.table',

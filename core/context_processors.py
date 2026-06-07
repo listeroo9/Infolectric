@@ -1,7 +1,8 @@
 def management_permissions(request):
     """Add management permission flags to every template context."""
     user = request.user
-    can_manage = user.is_authenticated and (user.is_staff or user.is_superuser)
+    is_authenticated = user.is_authenticated
+    can_manage = is_authenticated and (user.is_staff or user.is_superuser)
 
     return {
         'is_content_manager': can_manage,
@@ -9,4 +10,6 @@ def management_permissions(request):
         'can_manage_appliances': can_manage,
         'can_manage_categories': can_manage,
         'can_manage_wires': can_manage,
+        'can_manage_requests': can_manage,
+        'can_submit_requests': is_authenticated,
     }

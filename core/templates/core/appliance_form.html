@@ -6,6 +6,17 @@
   <form method="post">
     {% csrf_token %}
     {{ form.as_p }}
+
+    {% if not user.is_staff and not user.is_superuser %}
+      <div class="mb-3">
+        <label for="reason" class="form-label">
+          Reason for {% if form.instance.pk %}requested change{% else %}request{% endif %}
+          <span class="text-danger">*</span>
+        </label>
+        <textarea id="reason" name="reason" class="form-control" rows="3">{{ request.POST.reason }}</textarea>
+      </div>
+    {% endif %}
+
     <button class="btn btn-primary">Save</button>
   </form>
 </div>

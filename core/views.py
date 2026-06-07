@@ -14,11 +14,14 @@ from django.contrib.auth import login as auth_login
 from django.urls import reverse_lazy
 from django.db.models import Q
 from django.contrib import messages
-from .models import Component, Category, WireSize
+from .models import Component, Category, WireSize, ChangeRequest
 from .forms import (
     ComponentForm, CategoryForm, WireSizeForm,
     WireCalculatorForm, WireExplorerForm,
     ApplianceLoadForm, ProjectBuilderForm,
+    ChangeRequestReasonForm, ComponentRequestPayloadForm,
+    ApplianceLoadRequestPayloadForm, WireSizeRequestPayloadForm,
+    CategoryRequestPayloadForm, RequestAdminForm,
     InfolectricAuthenticationForm, UserRegistrationForm
 )
 from .models import ApplianceLoad
@@ -59,7 +62,7 @@ class CategoryDetailView(DetailView):
         return context
 
 
-class CategoryCreateView(ManagementPermissionMixin, CreateView):
+class CategoryCreateView(LoginRequiredMixin, CreateView):
     """Create a new electrical component category."""
     model = Category
     form_class = CategoryForm
@@ -67,11 +70,33 @@ class CategoryCreateView(ManagementPermissionMixin, CreateView):
     success_url = reverse_lazy('core:category-list')
 
     def form_valid(self, form):
-        messages.success(self.request, f"Category '{form.cleaned_data['name']}' created successfully!")
-        return super().form_valid(form)
+        # Admins create directly; authenticated non-staff submit a ChangeRequest
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            messages.success(self.request, f"Category '{form.cleaned_data['name']}' created successfully!")
+            return super().form_valid(form)
+
+        reason = normalize_request_reason(self.request)
+        if not reason:
+            form.add_error(None, 'Reason is required to submit a change request.')
+            return self.form_invalid(form)
+
+        payload = normalize_payload(form.cleaned_data)
+        title = form.cleaned_data.get('name') or f"Create Category"
+        cr = create_change_request(
+            user=user,
+            request_type=ChangeRequest.REQUEST_TYPE_ADD,
+            target_model=ChangeRequest.TARGET_MODEL_CATEGORY,
+            title=title,
+            reason=reason,
+            payload=payload,
+        )
+        cr.save()
+        messages.success(self.request, 'Your request has been submitted for moderator approval.')
+        return redirect('core:category-list')
 
 
-class CategoryUpdateView(ManagementPermissionMixin, UpdateView):
+class CategoryUpdateView(LoginRequiredMixin, UpdateView):
     """Update an existing electrical component category."""
     model = Category
     form_class = CategoryForm
@@ -79,20 +104,63 @@ class CategoryUpdateView(ManagementPermissionMixin, UpdateView):
     success_url = reverse_lazy('core:category-list')
 
     def form_valid(self, form):
-        messages.success(self.request, f"Category '{form.cleaned_data['name']}' updated successfully!")
-        return super().form_valid(form)
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            messages.success(self.request, f"Category '{form.cleaned_data['name']}' updated successfully!")
+            return super().form_valid(form)
+
+        reason = normalize_request_reason(self.request)
+        if not reason:
+            form.add_error(None, 'Reason is required to submit a change request.')
+            return self.form_invalid(form)
+
+        obj = self.get_object()
+        payload = normalize_payload(form.cleaned_data)
+        title = form.cleaned_data.get('name') or str(obj)
+        cr = create_change_request(
+            user=user,
+            request_type=ChangeRequest.REQUEST_TYPE_EDIT,
+            target_model=ChangeRequest.TARGET_MODEL_CATEGORY,
+            target_object_id=obj.pk,
+            title=title,
+            reason=reason,
+            payload=payload,
+        )
+        cr.save()
+        messages.success(self.request, 'Your request has been submitted for moderator approval.')
+        return redirect('core:category-list')
 
 
-class CategoryDeleteView(ManagementPermissionMixin, DeleteView):
+class CategoryDeleteView(LoginRequiredMixin, DeleteView):
     """Delete an electrical component category."""
     model = Category
     template_name = 'core/category_confirm_delete.html'
     success_url = reverse_lazy('core:category-list')
 
-    def delete(self, request, *args, **kwargs):
-        category_name = self.get_object().name
-        messages.success(request, f"Category '{category_name}' deleted successfully!")
-        return super().delete(request, *args, **kwargs)
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        obj = self.get_object()
+        if user.is_staff or user.is_superuser:
+            messages.success(request, f"Category '{obj.name}' deleted successfully!")
+            return super().post(request, *args, **kwargs)
+
+        reason = normalize_request_reason(request)
+        if not reason:
+            messages.error(request, 'Reason for deletion request is required.')
+            return self.get(request, *args, **kwargs)
+
+        cr = create_change_request(
+            user=user,
+            request_type=ChangeRequest.REQUEST_TYPE_DELETE,
+            target_model=ChangeRequest.TARGET_MODEL_CATEGORY,
+            title=str(obj),
+            reason=reason,
+            target_object_id=obj.pk,
+            payload={},
+        )
+        cr.save()
+        messages.success(request, 'Your request has been submitted for moderator approval.')
+        return redirect('core:category-list')
 
 
 # ============================================================================
@@ -155,7 +223,7 @@ class ComponentDetailView(DetailView):
         return context
 
 
-class ComponentCreateView(ManagementPermissionMixin, CreateView):
+class ComponentCreateView(LoginRequiredMixin, CreateView):
     """Create a new electrical component."""
     model = Component
     form_class = ComponentForm
@@ -163,11 +231,32 @@ class ComponentCreateView(ManagementPermissionMixin, CreateView):
     success_url = reverse_lazy('core:component-list')
 
     def form_valid(self, form):
-        messages.success(self.request, f"Component '{form.cleaned_data['name']}' created successfully!")
-        return super().form_valid(form)
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            messages.success(self.request, f"Component '{form.cleaned_data['name']}' created successfully!")
+            return super().form_valid(form)
+
+        reason = normalize_request_reason(self.request)
+        if not reason:
+            form.add_error(None, 'Reason is required to submit a change request.')
+            return self.form_invalid(form)
+
+        payload = normalize_payload(form.cleaned_data)
+        title = form.cleaned_data.get('name') or 'Create Component'
+        cr = create_change_request(
+            user=user,
+            request_type=ChangeRequest.REQUEST_TYPE_ADD,
+            target_model=ChangeRequest.TARGET_MODEL_COMPONENT,
+            title=title,
+            reason=reason,
+            payload=payload,
+        )
+        cr.save()
+        messages.success(self.request, 'Your request has been submitted for moderator approval.')
+        return redirect('core:component-list')
 
 
-class ComponentUpdateView(ManagementPermissionMixin, UpdateView):
+class ComponentUpdateView(LoginRequiredMixin, UpdateView):
     """Update an existing electrical component."""
     model = Component
     form_class = ComponentForm
@@ -177,20 +266,63 @@ class ComponentUpdateView(ManagementPermissionMixin, UpdateView):
         return reverse_lazy('core:component-detail', kwargs={'pk': self.object.pk})
 
     def form_valid(self, form):
-        messages.success(self.request, f"Component '{form.cleaned_data['name']}' updated successfully!")
-        return super().form_valid(form)
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            messages.success(self.request, f"Component '{form.cleaned_data['name']}' updated successfully!")
+            return super().form_valid(form)
+
+        reason = normalize_request_reason(self.request)
+        if not reason:
+            form.add_error(None, 'Reason is required to submit a change request.')
+            return self.form_invalid(form)
+
+        obj = self.get_object()
+        payload = normalize_payload(form.cleaned_data)
+        title = form.cleaned_data.get('name') or str(obj)
+        cr = create_change_request(
+            user=user,
+            request_type=ChangeRequest.REQUEST_TYPE_EDIT,
+            target_model=ChangeRequest.TARGET_MODEL_COMPONENT,
+            target_object_id=obj.pk,
+            title=title,
+            reason=reason,
+            payload=payload,
+        )
+        cr.save()
+        messages.success(self.request, 'Your request has been submitted for moderator approval.')
+        return redirect('core:component-detail', pk=obj.pk)
 
 
-class ComponentDeleteView(ManagementPermissionMixin, DeleteView):
+class ComponentDeleteView(LoginRequiredMixin, DeleteView):
     """Delete an electrical component."""
     model = Component
     template_name = 'core/component_confirm_delete.html'
     success_url = reverse_lazy('core:component-list')
 
-    def delete(self, request, *args, **kwargs):
-        component_name = self.get_object().name
-        messages.success(request, f"Component '{component_name}' deleted successfully!")
-        return super().delete(request, *args, **kwargs)
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        obj = self.get_object()
+        if user.is_staff or user.is_superuser:
+            messages.success(request, f"Component '{obj.name}' deleted successfully!")
+            return super().post(request, *args, **kwargs)
+
+        reason = normalize_request_reason(request)
+        if not reason:
+            messages.error(request, 'Reason for deletion request is required.')
+            return self.get(request, *args, **kwargs)
+
+        cr = create_change_request(
+            user=user,
+            request_type=ChangeRequest.REQUEST_TYPE_DELETE,
+            target_model=ChangeRequest.TARGET_MODEL_COMPONENT,
+            title=str(obj),
+            reason=reason,
+            target_object_id=obj.pk,
+            payload={},
+        )
+        cr.save()
+        messages.success(request, 'Your request has been submitted for moderator approval.')
+        return redirect('core:component-list')
 
 
 class InfolectricLoginView(LoginView):
@@ -217,9 +349,269 @@ class ProfileView(LoginRequiredMixin, TemplateView):
             'saved_calculations_count': 0,
             'favorite_components_count': 0,
             'favorite_appliances_count': 0,
-            'submission_requests_count': 0,
+            'submission_requests_count': ChangeRequest.objects.filter(user=self.request.user).count(),
         })
         return context
+
+
+def get_request_payload_form(target_model, request_type, data=None, instance=None, initial=None):
+    form_mapping = {
+        ChangeRequest.TARGET_MODEL_COMPONENT: ComponentRequestPayloadForm,
+        ChangeRequest.TARGET_MODEL_APPLIANCE: ApplianceLoadRequestPayloadForm,
+        ChangeRequest.TARGET_MODEL_WIRESIZE: WireSizeRequestPayloadForm,
+        ChangeRequest.TARGET_MODEL_CATEGORY: CategoryRequestPayloadForm,
+    }
+    if request_type not in {ChangeRequest.REQUEST_TYPE_ADD, ChangeRequest.REQUEST_TYPE_EDIT}:
+        return None
+    form_class = form_mapping.get(target_model)
+    if not form_class:
+        return None
+    if data is not None:
+        return form_class(data=data, instance=instance, prefix='payload')
+    return form_class(prefix='payload', initial=initial)
+
+
+def normalize_payload(cleaned_data):
+    def normalize_value(value):
+        if hasattr(value, 'pk'):
+            return value.pk
+        if isinstance(value, Decimal):
+            return float(value)
+        if isinstance(value, dict):
+            return {k: normalize_value(v) for k, v in value.items()}
+        if isinstance(value, (list, tuple, set)):
+            return [normalize_value(v) for v in value]
+        return value
+
+    return {key: normalize_value(value) for key, value in cleaned_data.items()}
+
+
+def normalize_request_reason(request):
+    return request.POST.get('reason', '').strip()
+
+
+def create_change_request(user, request_type, target_model, title, reason='', payload=None, target_object_id=None):
+    return ChangeRequest(
+        user=user,
+        request_type=request_type,
+        target_model=target_model,
+        target_object_id=target_object_id,
+        title=title,
+        reason=reason,
+        payload=payload or {},
+    )
+
+
+# Legacy request creation removed: CRUD pages now create ChangeRequest entries for non-staff users.
+
+
+class ChangeRequestListView(LoginRequiredMixin, ListView):
+    """Display the authenticated user's request history."""
+    model = ChangeRequest
+    template_name = 'core/request_list.html'
+    context_object_name = 'requests'
+    paginate_by = 20
+
+    def get_queryset(self):
+        queryset = ChangeRequest.objects.filter(user=self.request.user)
+        request_type = self.request.GET.get('request_type', '').strip()
+        status = self.request.GET.get('status', '').strip()
+        target_model = self.request.GET.get('target_model', '').strip()
+
+        if request_type:
+            queryset = queryset.filter(request_type=request_type)
+        if status:
+            queryset = queryset.filter(status=status)
+        if target_model:
+            queryset = queryset.filter(target_model=target_model)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['status_counts'] = {
+            status: ChangeRequest.objects.filter(user=self.request.user, status=status).count()
+            for status, _ in ChangeRequest.STATUS_CHOICES
+        }
+        query_params = self.request.GET.copy()
+        query_params.pop('page', None)
+        context['query_string'] = query_params.urlencode()
+        context['request_type_choices'] = ChangeRequest.REQUEST_TYPE_CHOICES
+        context['status_choices'] = ChangeRequest.STATUS_CHOICES
+        context['target_model_choices'] = ChangeRequest.TARGET_MODEL_CHOICES
+        context['results_count'] = self.get_queryset().count()
+        return context
+
+
+class ChangeRequestDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    """View a single change request detail for users and staff."""
+    model = ChangeRequest
+    template_name = 'core/request_detail.html'
+    context_object_name = 'request_item'
+
+    def test_func(self):
+        obj = self.get_object()
+        return self.request.user.is_staff or self.request.user.is_superuser or obj.user == self.request.user
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['target_object'] = self.object.get_target_object()
+        return context
+
+
+class ChangeRequestUpdateView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    """Allow a user to edit the reason on their own pending request."""
+    template_name = 'core/request_reason_form.html'
+
+    def get_object(self):
+        return get_object_or_404(ChangeRequest, pk=self.kwargs['pk'])
+
+    def test_func(self):
+        obj = self.get_object()
+        return obj.user == self.request.user and obj.is_pending()
+
+    def get(self, request, *args, **kwargs):
+        change_request = self.get_object()
+        form = ChangeRequestReasonForm(instance=change_request)
+        return self.render_to_response({
+            'form': form,
+            'request_item': change_request,
+        })
+
+    def post(self, request, *args, **kwargs):
+        change_request = self.get_object()
+        form = ChangeRequestReasonForm(request.POST, instance=change_request)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Your request reason has been updated.')
+            return redirect('core:request-detail', pk=change_request.pk)
+
+        return self.render_to_response({
+            'form': form,
+            'request_item': change_request,
+        })
+
+
+class ChangeRequestCancelView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    """Allow users to cancel their own pending request."""
+    template_name = 'core/request_detail.html'
+
+    def get_object(self):
+        return get_object_or_404(ChangeRequest, pk=self.kwargs['pk'])
+
+    def test_func(self):
+        obj = self.get_object()
+        return obj.user == self.request.user and obj.is_pending()
+
+    def post(self, request, *args, **kwargs):
+        change_request = self.get_object()
+        change_request.cancel()
+        messages.success(request, 'Your request has been cancelled.')
+        return redirect('core:request-detail', pk=change_request.pk)
+
+
+class RequestModerationListView(ManagementPermissionMixin, ListView):
+    """Admin view to filter and browse all change requests."""
+    model = ChangeRequest
+    template_name = 'core/moderation_list.html'
+    context_object_name = 'requests'
+    paginate_by = 25
+
+    def get_queryset(self):
+        queryset = ChangeRequest.objects.all()
+        request_type = self.request.GET.get('request_type')
+        status = self.request.GET.get('status')
+        target_model = self.request.GET.get('target_model')
+        user_query = self.request.GET.get('user')
+
+        if request_type:
+            queryset = queryset.filter(request_type=request_type)
+        if status:
+            queryset = queryset.filter(status=status)
+        if target_model:
+            queryset = queryset.filter(target_model=target_model)
+        if user_query:
+            queryset = queryset.filter(user__username__icontains=user_query)
+
+        return queryset.select_related('user', 'approved_by', 'rejected_by')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({
+            'request_types': ChangeRequest.REQUEST_TYPE_CHOICES,
+            'statuses': ChangeRequest.STATUS_CHOICES,
+            'target_models': ChangeRequest.TARGET_MODEL_CHOICES,
+            'filter_values': {
+                'request_type': self.request.GET.get('request_type', ''),
+                'status': self.request.GET.get('status', ''),
+                'target_model': self.request.GET.get('target_model', ''),
+                'user': self.request.GET.get('user', ''),
+            }
+        })
+        # Group pending requests by type for quick review
+        base_qs = ChangeRequest.objects.filter(status=ChangeRequest.STATUS_PENDING)
+        context['pending_create_requests'] = base_qs.filter(request_type=ChangeRequest.REQUEST_TYPE_ADD).select_related('user')
+        context['pending_edit_requests'] = base_qs.filter(request_type=ChangeRequest.REQUEST_TYPE_EDIT).select_related('user')
+        context['pending_delete_requests'] = base_qs.filter(request_type=ChangeRequest.REQUEST_TYPE_DELETE).select_related('user')
+        return context
+
+
+class RequestModerationDetailView(ManagementPermissionMixin, DetailView):
+    """Review a single change request and approve or reject it."""
+    model = ChangeRequest
+    template_name = 'core/moderation_detail.html'
+    context_object_name = 'request_item'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['target_object'] = self.object.get_target_object()
+        context['admin_form'] = RequestAdminForm(instance=self.object)
+        return context
+
+
+class ChangeRequestAdminUpdateView(ManagementPermissionMixin, UpdateView):
+    """Allow admin to edit a pending request before approval."""
+    model = ChangeRequest
+    form_class = RequestAdminForm
+    template_name = 'core/request_admin_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy('core:moderation-request-detail', kwargs={'pk': self.object.pk})
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Request details updated successfully.')
+        return super().form_valid(form)
+
+
+class RequestApproveView(ManagementPermissionMixin, TemplateView):
+    """Approve a pending request."""
+    template_name = 'core/moderation_detail.html'
+
+    def post(self, request, *args, **kwargs):
+        change_request = get_object_or_404(ChangeRequest, pk=self.kwargs['pk'])
+        admin_notes = request.POST.get('admin_notes', '')
+        try:
+            change_request.approve(request.user, notes=admin_notes)
+            messages.success(request, 'Request approved and changes applied successfully.')
+        except Exception as exc:
+            messages.error(request, str(exc))
+        return redirect('core:moderation-request-detail', pk=change_request.pk)
+
+
+class RequestRejectView(ManagementPermissionMixin, TemplateView):
+    """Reject a pending request."""
+    template_name = 'core/moderation_detail.html'
+
+    def post(self, request, *args, **kwargs):
+        change_request = get_object_or_404(ChangeRequest, pk=self.kwargs['pk'])
+        admin_notes = request.POST.get('admin_notes', '')
+        try:
+            change_request.reject(request.user, notes=admin_notes)
+            messages.success(request, 'Request rejected successfully.')
+        except Exception as exc:
+            messages.error(request, str(exc))
+        return redirect('core:moderation-request-detail', pk=change_request.pk)
 
 
 # ============================================================================
@@ -241,7 +633,7 @@ class WireSizeDetailView(DetailView):
     context_object_name = 'wire_size'
 
 
-class WireSizeCreateView(ManagementPermissionMixin, CreateView):
+class WireSizeCreateView(LoginRequiredMixin, CreateView):
     """Create a new wire size specification."""
     model = WireSize
     form_class = WireSizeForm
@@ -249,14 +641,35 @@ class WireSizeCreateView(ManagementPermissionMixin, CreateView):
     success_url = reverse_lazy('core:wiresize-list')
 
     def form_valid(self, form):
-        messages.success(
-            self.request,
-            f"Wire size {form.cleaned_data['wire_size_mm2']}mm² created successfully!"
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            messages.success(
+                self.request,
+                f"Wire size {form.cleaned_data['wire_size_mm2']}mm² created successfully!"
+            )
+            return super().form_valid(form)
+
+        reason = normalize_request_reason(self.request)
+        if not reason:
+            form.add_error(None, 'Reason is required to submit a change request.')
+            return self.form_invalid(form)
+
+        payload = normalize_payload(form.cleaned_data)
+        title = f"Wire size {form.cleaned_data.get('wire_size_mm2')}mm²"
+        cr = create_change_request(
+            user=user,
+            request_type=ChangeRequest.REQUEST_TYPE_ADD,
+            target_model=ChangeRequest.TARGET_MODEL_WIRESIZE,
+            title=title,
+            reason=reason,
+            payload=payload,
         )
-        return super().form_valid(form)
+        cr.save()
+        messages.success(self.request, 'Your request has been submitted for moderator approval.')
+        return redirect('core:wiresize-list')
 
 
-class WireSizeUpdateView(ManagementPermissionMixin, UpdateView):
+class WireSizeUpdateView(LoginRequiredMixin, UpdateView):
     """Update an existing wire size specification."""
     model = WireSize
     form_class = WireSizeForm
@@ -266,23 +679,66 @@ class WireSizeUpdateView(ManagementPermissionMixin, UpdateView):
         return reverse_lazy('core:wiresize-detail', kwargs={'pk': self.object.pk})
 
     def form_valid(self, form):
-        messages.success(
-            self.request,
-            f"Wire size {form.cleaned_data['wire_size_mm2']}mm² updated successfully!"
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            messages.success(
+                self.request,
+                f"Wire size {form.cleaned_data['wire_size_mm2']}mm² updated successfully!"
+            )
+            return super().form_valid(form)
+
+        reason = normalize_request_reason(self.request)
+        if not reason:
+            form.add_error(None, 'Reason is required to submit a change request.')
+            return self.form_invalid(form)
+
+        obj = self.get_object()
+        payload = normalize_payload(form.cleaned_data)
+        title = f"Wire size {form.cleaned_data.get('wire_size_mm2')}mm²"
+        cr = create_change_request(
+            user=user,
+            request_type=ChangeRequest.REQUEST_TYPE_EDIT,
+            target_model=ChangeRequest.TARGET_MODEL_WIRESIZE,
+            target_object_id=obj.pk,
+            title=title,
+            reason=reason,
+            payload=payload,
         )
-        return super().form_valid(form)
+        cr.save()
+        messages.success(self.request, 'Your request has been submitted for moderator approval.')
+        return redirect('core:wiresize-detail', pk=obj.pk)
 
 
-class WireSizeDeleteView(ManagementPermissionMixin, DeleteView):
+class WireSizeDeleteView(LoginRequiredMixin, DeleteView):
     """Delete a wire size specification."""
     model = WireSize
     template_name = 'core/wiresize_confirm_delete.html'
     success_url = reverse_lazy('core:wiresize-list')
 
-    def delete(self, request, *args, **kwargs):
-        wire_size = self.get_object().wire_size_mm2
-        messages.success(request, f"Wire size {wire_size}mm² deleted successfully!")
-        return super().delete(request, *args, **kwargs)
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        obj = self.get_object()
+        if user.is_staff or user.is_superuser:
+            messages.success(request, f"Wire size {obj.wire_size_mm2}mm² deleted successfully!")
+            return super().post(request, *args, **kwargs)
+
+        reason = normalize_request_reason(request)
+        if not reason:
+            messages.error(request, 'Reason for deletion request is required.')
+            return self.get(request, *args, **kwargs)
+
+        cr = create_change_request(
+            user=user,
+            request_type=ChangeRequest.REQUEST_TYPE_DELETE,
+            target_model=ChangeRequest.TARGET_MODEL_WIRESIZE,
+            title=str(obj),
+            reason=reason,
+            target_object_id=obj.pk,
+            payload={},
+        )
+        cr.save()
+        messages.success(request, 'Your request has been submitted for moderator approval.')
+        return redirect('core:wiresize-list')
 
 
 # ============================================================================
@@ -481,18 +937,39 @@ class ApplianceDetailView(DetailView):
     context_object_name = 'appliance'
 
 
-class ApplianceCreateView(ManagementPermissionMixin, CreateView):
+class ApplianceCreateView(LoginRequiredMixin, CreateView):
     model = ApplianceLoad
     form_class = ApplianceLoadForm
     template_name = 'core/appliance_form.html'
     success_url = reverse_lazy('core:appliance-list')
 
     def form_valid(self, form):
-        messages.success(self.request, f"Appliance '{form.cleaned_data['name']}' created successfully!")
-        return super().form_valid(form)
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            messages.success(self.request, f"Appliance '{form.cleaned_data['name']}' created successfully!")
+            return super().form_valid(form)
+
+        reason = normalize_request_reason(self.request)
+        if not reason:
+            form.add_error(None, 'Reason is required to submit a change request.')
+            return self.form_invalid(form)
+
+        payload = normalize_payload(form.cleaned_data)
+        title = form.cleaned_data.get('name') or 'Create Appliance'
+        cr = create_change_request(
+            user=user,
+            request_type=ChangeRequest.REQUEST_TYPE_ADD,
+            target_model=ChangeRequest.TARGET_MODEL_APPLIANCE,
+            title=title,
+            reason=reason,
+            payload=payload,
+        )
+        cr.save()
+        messages.success(request, 'Your request has been submitted for moderator approval.')
+        return redirect('core:appliance-list')
 
 
-class ApplianceUpdateView(ManagementPermissionMixin, UpdateView):
+class ApplianceUpdateView(LoginRequiredMixin, UpdateView):
     model = ApplianceLoad
     form_class = ApplianceLoadForm
     template_name = 'core/appliance_form.html'
@@ -501,19 +978,62 @@ class ApplianceUpdateView(ManagementPermissionMixin, UpdateView):
         return reverse_lazy('core:appliance-detail', kwargs={'pk': self.object.pk})
 
     def form_valid(self, form):
-        messages.success(self.request, f"Appliance '{form.cleaned_data['name']}' updated successfully!")
-        return super().form_valid(form)
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            messages.success(self.request, f"Appliance '{form.cleaned_data['name']}' updated successfully!")
+            return super().form_valid(form)
+
+        reason = normalize_request_reason(self.request)
+        if not reason:
+            form.add_error(None, 'Reason is required to submit a change request.')
+            return self.form_invalid(form)
+
+        obj = self.get_object()
+        payload = normalize_payload(form.cleaned_data)
+        title = form.cleaned_data.get('name') or str(obj)
+        cr = create_change_request(
+            user=user,
+            request_type=ChangeRequest.REQUEST_TYPE_EDIT,
+            target_model=ChangeRequest.TARGET_MODEL_APPLIANCE,
+            target_object_id=obj.pk,
+            title=title,
+            reason=reason,
+            payload=payload,
+        )
+        cr.save()
+        messages.success(self.request, 'Your request has been submitted for moderator approval.')
+        return redirect('core:appliance-detail', pk=obj.pk)
 
 
-class ApplianceDeleteView(ManagementPermissionMixin, DeleteView):
+class ApplianceDeleteView(LoginRequiredMixin, DeleteView):
     model = ApplianceLoad
     template_name = 'core/appliance_confirm_delete.html'
     success_url = reverse_lazy('core:appliance-list')
 
-    def delete(self, request, *args, **kwargs):
-        name = self.get_object().name
-        messages.success(request, f"Appliance '{name}' deleted successfully!")
-        return super().delete(request, *args, **kwargs)
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        obj = self.get_object()
+        if user.is_staff or user.is_superuser:
+            messages.success(request, f"Appliance '{obj.name}' deleted successfully!")
+            return super().post(request, *args, **kwargs)
+
+        reason = normalize_request_reason(request)
+        if not reason:
+            messages.error(request, 'Reason for deletion request is required.')
+            return self.get(request, *args, **kwargs)
+
+        cr = create_change_request(
+            user=user,
+            request_type=ChangeRequest.REQUEST_TYPE_DELETE,
+            target_model=ChangeRequest.TARGET_MODEL_APPLIANCE,
+            title=str(obj),
+            reason=reason,
+            target_object_id=obj.pk,
+            payload={},
+        )
+        cr.save()
+        messages.success(request, 'Your request has been submitted for moderator approval.')
+        return redirect('core:appliance-list')
 
 
 def ProjectBuilderView(request):

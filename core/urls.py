@@ -80,6 +80,16 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(next_page='core:index'), name='logout'),
     path('register/', views.register, name='register'),
     path('profile/', views.ProfileView.as_view(), name='profile'),
+    path('requests/', views.ChangeRequestListView.as_view(), name='request-list'),
+    path('requests/<int:pk>/', views.ChangeRequestDetailView.as_view(), name='request-detail'),
+    path('requests/<int:pk>/edit/', views.ChangeRequestUpdateView.as_view(), name='request-edit'),
+    path('requests/<int:pk>/cancel/', views.ChangeRequestCancelView.as_view(), name='request-cancel'),
+
+    path('moderation/requests/', views.RequestModerationListView.as_view(), name='moderation-request-list'),
+    path('moderation/requests/<int:pk>/', views.RequestModerationDetailView.as_view(), name='moderation-request-detail'),
+    path('moderation/requests/<int:pk>/approve/', views.RequestApproveView.as_view(), name='moderation-request-approve'),
+    path('moderation/requests/<int:pk>/reject/', views.RequestRejectView.as_view(), name='moderation-request-reject'),
+    path('moderation/requests/<int:pk>/edit/', views.ChangeRequestAdminUpdateView.as_view(), name='moderation-request-edit'),
 
     # Project Builder
     path('project-builder/', views.ProjectBuilderView, name='project-builder'),
