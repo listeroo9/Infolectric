@@ -256,6 +256,21 @@ class ProjectBuilderForm(forms.Form):
 
 class InfolectricAuthenticationForm(AuthenticationForm):
     """Custom login form with optional remember-me support."""
+    username = forms.CharField(
+        max_length=254,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'name@example.com'
+        })
+    )
+    password = forms.CharField(
+        label='Password',
+        strip=False,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Password'
+        })
+    )
     remember_me = forms.BooleanField(
         required=False,
         initial=False,

@@ -1,208 +1,232 @@
 {% extends 'core/auth_base.html' %}
-{% load socialaccount %}
+{% load static socialaccount %}
 
 {% block title %}Sign in - Infolectric{% endblock %}
 
 {% block content %}
 <style>
-  .login-wrapper {
-    max-width: 380px;
-    margin: 60px auto;
-    padding: 0 16px;
-  }
-  .login-card-glass {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 12px;
-    padding: 32px 28px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-  }
-  .login-header {
-    text-align: center;
-    margin-bottom: 24px;
-  }
-  .login-header h1 {
-    font-size: 1.875rem;
-    font-weight: 700;
-    color: #0f172a;
-    margin-bottom: 8px;
-  }
-  .login-top-link {
-    font-size: 0.9rem;
-    color: #64748b;
-  }
-  .login-top-link a {
-    color: #2563eb;
-    text-decoration: none;
-  }
-  .login-top-link a:hover {
-    text-decoration: underline;
-  }
-  .google-login-btn {
-    display: block;
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 16px;
-    background: #ffffff;
-    border: 1px solid rgba(15,23,42,0.1);
-    border-radius: 6px;
-    text-align: center;
-    text-decoration: none;
-    color: #111827;
-    font-weight: 600;
-    font-size: 0.95rem;
-    transition: background 0.15s ease;
-  }
-  .google-login-btn:hover {
-    background: #f8f9fa;
-  }
-  .google-login-btn i {
-    margin-right: 8px;
-    color: #4285f4;
-  }
-  .login-divider {
-    text-align: center;
-    margin: 20px 0;
-    position: relative;
-  }
-  .login-divider::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: rgba(15,23,42,0.08);
-  }
-  .login-divider-text {
-    position: relative;
-    display: inline-block;
-    background: #ffffff;
-    padding: 0 12px;
-    font-size: 0.85rem;
-    color: #94a3b8;
-  }
-  .form-group {
-    margin-bottom: 16px;
-  }
-  .form-label {
-    display: block;
-    font-weight: 600;
-    font-size: 0.85rem;
-    color: #111827;
-    margin-bottom: 6px;
-  }
-  .form-control {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid rgba(15,23,42,0.1);
-    border-radius: 6px;
-    font-size: 0.95rem;
-    transition: border-color 0.15s ease;
-    box-sizing: border-box;
-  }
-  .form-control:focus {
-    outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
-  }
-  .form-control::placeholder {
-    color: #cbd5e1;
-  }
-  .password-wrapper {
-    position: relative;
-  }
-  .toggle-password {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: #64748b;
-    cursor: pointer;
-    font-size: 0.9rem;
-    padding: 0;
-  }
-  .toggle-password:hover {
-    color: #0f172a;
-  }
-  .checkbox-group {
+  /* Page layout: preserve any existing background-image from parent templates
+     Do NOT override background-image; use an overlay pseudo-element instead. */
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    -webkit-font-smoothing:antialiased;
     display: flex;
     align-items: center;
-    margin-bottom: 20px;
+    justify-content: center;
+    padding: 36px 16px;
+    position: relative; /* create stacking context for overlay */
+    background-color: transparent; /* keep image from parent visible */
   }
-  .checkbox-group input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    margin-right: 8px;
-    cursor: pointer;
+
+  /* Subtle overlay above the existing background image to improve readability
+     without hiding the original image. Opacity ~25%. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background: radial-gradient(800px 400px at 10% 20%, rgba(6,78,138,0.12), transparent 25%),
+                radial-gradient(600px 300px at 90% 80%, rgba(6,78,138,0.08), transparent 30%),
+                linear-gradient(180deg, rgba(3,37,65,0.06), rgba(3,37,65,0.0));
+    mix-blend-mode: normal;
+    opacity: 1;
   }
-  .checkbox-group label {
-    font-size: 0.9rem;
-    color: #111827;
-    cursor: pointer;
-    margin: 0;
+
+  /* Wrapper sizing kept to match layout but slightly larger for prominence */
+  .login-wrapper {
+    width: 100%;
+    max-width: 560px;
+    padding: 0 16px;
+    box-sizing: border-box;
   }
+
+  /* Center the auth card within the viewport regardless of parent styles
+     Use a conservative override so header/footer and fixed buttons don't push it. */
+  .auth-wrapper {
+    min-height: 100vh !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 24px 0 !important;
+    margin-top: 0 !important;
+  }
+
+  /* Short viewport fallback: allow scrolling and comfortable spacing */
+  @media (max-height: 640px) {
+    .auth-wrapper { align-items: flex-start !important; padding-top: 40px !important; padding-bottom: 40px !important; }
+  }
+
+  /* Premium glass card */
+  .login-card-glass {
+    position: relative;
+    overflow: hidden;
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.08) 100%);
+    backdrop-filter: blur(24px) saturate(120%);
+    -webkit-backdrop-filter: blur(24px) saturate(120%);
+    border: 1px solid rgba(255,255,255,0.12);
+    padding: 40px 36px;
+    box-shadow: 0 10px 30px rgba(12,18,31,0.08), 0 2px 16px rgba(59,130,246,0.03);
+    z-index: 2; /* ensure the card floats above the overlay and background image */
+  }
+
+  /* Hide the large auth header (logo) provided by auth_base on this page
+     We'll surface branding inside the card instead. */
+  .auth-header { display: none !important; }
+
+  /* Shared branding component used in both auth cards */
+  .auth-card-branding { display:flex; flex-direction:column; align-items:center; gap:6px; margin-bottom:14px; }
+  .auth-card-branding .auth-card-logo { height:48px; width:auto; display:block; border-radius:8px; }
+  .auth-card-branding .auth-card-name { font-size:1.125rem; font-weight:700; color:#0f172a; }
+  .auth-card-branding .auth-card-tagline { font-size:0.85rem; color: rgba(15,23,42,0.6); margin-top:2px; }
+
+  /* Soft gradient overlay to add depth */
+  .login-card-glass::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(135deg, rgba(56,189,248,0.03), rgba(99,102,241,0.02) 40%, rgba(99,102,241,0.0) 100%);
+    mix-blend-mode: overlay;
+  }
+
+  /* Diagonal light streak for premium reflection */
+  .login-card-glass::before {
+    content: '';
+    position: absolute;
+    left: -30%;
+    top: -20%;
+    width: 160%;
+    height: 60%;
+    transform: rotate(-18deg);
+    background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.01));
+    filter: blur(26px) saturate(120%);
+    opacity: 0.9;
+    pointer-events: none;
+  }
+
+  /* Stronger top-edge highlight and softer bottom edge to emulate glass edge */
+  .login-card-glass { border-top: 1px solid rgba(255,255,255,0.22); border-bottom: 1px solid rgba(255,255,255,0.06); }
+
+  .login-header { text-align: center; margin-bottom: 22px; }
+  .login-header h1 { font-size: 1.875rem; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
+  .login-top-link { font-size: 0.9rem; color: #64748b; }
+  .login-top-link a { color: #2563eb; text-decoration: none; }
+  .login-top-link a:hover { text-decoration: underline; }
+
+  .login-divider { text-align: center; margin: 18px 0 22px; position: relative; }
+  .login-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(15,23,42,0.06); }
+  .login-divider-text { position: relative; display: inline-block; background: transparent; padding: 0 12px; font-size: 0.85rem; color: #94a3b8; }
+
+  .form-group { margin-bottom: 14px; }
+  .form-label { display: block; font-weight: 600; font-size: 0.85rem; color: #111827; margin-bottom: 6px; }
+
+  /* Inputs styled to match the glass panel */
+  .form-control {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    color: #0f172a;
+    backdrop-filter: blur(6px) saturate(115%);
+    transition: all 180ms ease;
+  }
+  .form-control:focus { outline: none; border-color: rgba(37,99,235,0.45); box-shadow: 0 6px 24px rgba(37,99,235,0.06), 0 0 0 6px rgba(37,99,235,0.04); background: rgba(255,255,255,0.08); }
+  .form-control::placeholder { color: rgba(15,23,42,0.25); }
+
+  .password-wrapper { position: relative; }
+  .toggle-password { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #64748b; cursor: pointer; font-size: 0.9rem; padding: 0; }
+  .toggle-password:hover { color: #0f172a; }
+
+  .checkbox-group { display: flex; align-items: center; margin-bottom: 18px; }
+  .checkbox-group input[type="checkbox"] { width: 16px; height: 16px; margin-right: 8px; cursor: pointer; }
+  .checkbox-group label { font-size: 0.9rem; color: #111827; cursor: pointer; margin: 0; }
+
+  /* Primary button: modern gradient with subtle lift */
   .login-btn {
     width: 100%;
-    padding: 10px;
-    background: #366ce2;
+    padding: 12px;
+    background: linear-gradient(90deg, #17c7e6 0%, #2563eb 50%, #3b32e7 100%);
     color: #ffffff;
     border: none;
-    border-radius: 6px;
-    font-weight: 600;
-    font-size: 0.95rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.96rem;
     cursor: pointer;
-    transition: background 0.15s ease;
+    transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+    box-shadow: 0 6px 18px rgba(37,99,235,0.12), inset 0 -2px 6px rgba(0,0,0,0.06);
   }
-  .login-btn:hover {
-    background: #1746ac;
+  .login-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(37,99,235,0.14), 0 4px 10px rgba(37,99,235,0.06); opacity: 0.98; }
+
+  /* Google button adapted to glass look while keeping brand color */
+  .google-login-btn { display: block; width: 100%; padding: 10px 12px; margin-bottom: 14px; background: rgba(255,255,255,0.9); border-radius: 8px; text-align: center; text-decoration: none; color: #0f172a; font-weight: 700; font-size: 0.95rem; transition: transform 160ms ease, box-shadow 160ms ease; border: 1px solid rgba(15,23,42,0.06); box-shadow: 0 6px 18px rgba(12,18,31,0.06); }
+  .google-login-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(12,18,31,0.08); }
+  .google-login-btn i { margin-right: 10px; color: #4285f4; font-weight: 800; }
+
+  .login-footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 20px; font-size: 0.85rem; }
+  .login-footer a { color: #2563eb; text-decoration: none; } .login-footer a:hover { text-decoration: underline; }
+
+  .alert-danger { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 10px 12px; border-radius: 6px; margin-bottom: 16px; font-size: 0.9rem; }
+  .error-text { color: #dc2626; font-size: 0.8rem; margin-top: 4px; }
+
+  /* small responsive tweak */
+  @media (max-width: 480px) {
+    .login-wrapper { max-width: 100%; padding: 0 12px; }
+    .login-card-glass { padding: 28px 18px; border-radius: 12px; }
+    .login-header h1 { font-size: 1.5rem; }
   }
-  .login-footer {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 12px;
-    margin-top: 20px;
-    font-size: 0.85rem;
-  }
-  .login-footer a {
-    color: #2563eb;
+
+  /* Hide the default footer "Return to Home" link from auth_base on this page
+     We'll provide a dedicated top-left glass button instead. */
+  .auth-footer a { display: none !important; }
+
+  /* Return to Home glass button (positioned top-left, outside the card) */
+  .return-home-btn {
+    position: fixed;
+    top: 28px;
+    left: 28px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 3;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #2564ebd3 0%, #2564eb44 100%);
+    backdrop-filter: blur(8px) saturate(120%);
+    -webkit-backdrop-filter: blur(8px) saturate(120%);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #ffffff;
     text-decoration: none;
+    font-weight: 600;
+    box-shadow: 0 6px 16px rgba(12,18,31,0.06);
+    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
   }
-  .login-footer a:hover {
-    text-decoration: underline;
-  }
-  .alert-danger {
-    background: #fee2e2;
-    border: 1px solid #fca5a5;
-    color: #991b1b;
-    padding: 10px 12px;
-    border-radius: 6px;
-    margin-bottom: 16px;
-    font-size: 0.9rem;
-  }
-  .error-text {
-    color: #dc2626;
-    font-size: 0.8rem;
-    margin-top: 4px;
+  .return-home-btn i { font-size: 0.9rem; color: #d4d4d4; }
+  .return-home-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 34px rgba(12,18,31,0.12), 0 4px 10px rgba(37,99,235,0.04);
+    border-color: rgba(37,99,235,0.28);
   }
   @media (max-width: 480px) {
-    .login-wrapper {
-      margin: 40px auto;
-    }
-    .login-header h1 {
-      font-size: 1.5rem;
-    }
+    .return-home-btn { top: 14px; left: 12px; padding: 7px 9px; border-radius: 8px; font-size: 0.9rem; }
   }
 </style>
 
+<!-- Top-left glass navigation button (keeps same URL as the footer link in auth_base) -->
+<a href="{% url 'core:index' %}" class="return-home-btn" aria-label="Return to Home"><i class="fas fa-arrow-left"></i> Return to Home</a>
+
 <div class="login-wrapper">
   <div class="login-card-glass">
+    <div class="auth-card-branding">
+      <img src="{% static 'images/logo2.png' %}" alt="Infolectric" class="auth-card-logo">
+    </div>
     <div class="login-header">
-      <h1>Sign in</h1>
+      <h1>Log in</h1> 
       <p class="login-top-link">
         Don't have an account? <a href="{% url 'core:register' %}">Create an account</a>
       </p>
@@ -252,7 +276,7 @@
         <label for="id_remember_me">Keep me signed in</label>
       </div>
 
-      <button type="submit" class="login-btn">Sign in</button>
+      <button type="submit" class="login-btn">Log in</button>
     </form>
 
     <!-- Footer Links -->
