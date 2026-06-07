@@ -25,7 +25,7 @@
                     </div>
                     <div class="card-body">
                         <p class="card-text" style="min-height: 60px;">
-                            {{ category.description|default:"No description provided." }}
+                            {{ category.description|default:"No description provided."|linebreaks }}
                         </p>
                         <div class="mb-3">
                             <span class="badge badge-primary">{{ category.components.count }} Components</span>

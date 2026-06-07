@@ -17,6 +17,8 @@ from django.urls import reverse_lazy
 from django.db.models import Q
 from django.contrib import messages
 from django.core.files.storage import default_storage
+from django.http import HttpResponse, Http404
+from django.conf import settings
 from django.utils.crypto import get_random_string
 from .models import Component, Category, WireSize, ChangeRequest
 from .models import ApplianceLoad, UserProfile
@@ -41,6 +43,15 @@ class ManagementPermissionMixin(LoginRequiredMixin, UserPassesTestMixin):
     def test_func(self):
         user = self.request.user
         return user.is_authenticated and (user.is_staff or user.is_superuser)
+
+
+def service_worker(request):
+    """Serve the root service worker entry point for PWA registration."""
+    sw_path = os.path.join(settings.BASE_DIR, 'static', 'js', 'service-worker.js')
+    if not os.path.exists(sw_path):
+        raise Http404('Service worker not found')
+    with open(sw_path, 'rb') as sw_file:
+        return HttpResponse(sw_file.read(), content_type='application/javascript')
 
 
 # ============================================================================
@@ -241,6 +252,11 @@ class ComponentCreateView(LoginRequiredMixin, CreateView):
         kwargs['user'] = self.request.user
         return kwargs
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['category_options'] = Category.objects.order_by('name')
+        return context
+
     def form_valid(self, form):
         user = self.request.user
         if user.is_staff or user.is_superuser:
@@ -253,16 +269,13 @@ class ComponentCreateView(LoginRequiredMixin, CreateView):
             return self.form_invalid(form)
 
         payload = normalize_payload(form.cleaned_data)
-        # Preserve the raw selection for 'new' category from POST so the
-        # change request payload contains the sentinel 'new' string (the
-        # models logic looks for that). The form's cleaned_data may have
-        # `category` replaced with None to avoid assignment errors, so use
-        # the POST value to decide whether this is a new-category request.
-        is_new_category = self.request.POST.get('category') == 'new'
+        is_new_category = (
+            form.cleaned_data.get('category') is None and
+            bool(form.cleaned_data.get('new_category_name'))
+        )
         if not is_new_category:
             payload.pop('new_category_name', None)
         else:
-            # Ensure payload records the sentinel so approval logic sees it.
             payload['category'] = 'new'
 
         title = form.cleaned_data.get('name') or 'Create Component'
@@ -290,6 +303,11 @@ class ComponentUpdateView(LoginRequiredMixin, UpdateView):
         kwargs['user'] = self.request.user
         return kwargs
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['category_options'] = Category.objects.order_by('name')
+        return context
+
     def get_success_url(self):
         return reverse_lazy('core:component-detail', kwargs={'pk': self.object.pk})
 
@@ -306,8 +324,14 @@ class ComponentUpdateView(LoginRequiredMixin, UpdateView):
 
         obj = self.get_object()
         payload = normalize_payload(form.cleaned_data)
-        if payload.get('category') != 'new':
+        is_new_category = (
+            form.cleaned_data.get('category') is None and
+            bool(form.cleaned_data.get('new_category_name'))
+        )
+        if not is_new_category:
             payload.pop('new_category_name', None)
+        else:
+            payload['category'] = 'new'
         title = form.cleaned_data.get('name') or str(obj)
         cr = create_change_request(
             user=user,

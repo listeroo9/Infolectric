@@ -38,6 +38,11 @@ class Category(models.Model):
     def with_components(cls):
         return cls.objects.annotate(component_count=Count('components')).filter(component_count__gt=0)
 
+    def save(self, *args, **kwargs):
+        if self.name:
+            self.name = self.name.strip()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.name
 

@@ -28,7 +28,7 @@
             <div class="card-body">
                 <h6 class="text-muted">Description</h6>
                 <p style="line-height: 1.6;">
-                    {{ category.description|default:"No description provided." }}
+                    {{ category.description|default:"No description provided."|linebreaks }}
                 </p>
                 <hr>
                 <div class="row">

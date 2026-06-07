@@ -92,6 +92,9 @@ urlpatterns = [
     path('moderation/requests/<int:pk>/reject/', views.RequestRejectView.as_view(), name='moderation-request-reject'),
     path('moderation/requests/<int:pk>/edit/', views.ChangeRequestAdminUpdateView.as_view(), name='moderation-request-edit'),
 
+    # Service Worker entrypoint for PWA scope control
+    path('service-worker.js', views.service_worker, name='service-worker'),
+
     # Project Builder
     path('project-builder/', views.ProjectBuilderView, name='project-builder'),
 ]

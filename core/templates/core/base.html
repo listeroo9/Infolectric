@@ -11,6 +11,11 @@
     
     <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <link rel="apple-touch-icon" href="{% static 'images/Apps_logo.png' %}">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     
     <style>
         .glass-btn {
@@ -228,8 +233,8 @@
             left: 1rem;
             z-index: 1100;
             border: none;
-            background-color: rgba(255,255,255,0.08);
-            color: white;
+            background-color: rgba(255,255,255,0.20);
+            color: rgb(0, 0, 0);
             width: 44px;
             height: 44px;
             border-radius: 12px;
@@ -914,5 +919,19 @@
         </script>
 
         {% block extra_js %}{% endblock %}
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(function (registration) {
+                        console.log('Infolectric service worker registered with scope:', registration.scope);
+                    })
+                    .catch(function (error) {
+                        console.warn('Infolectric service worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>

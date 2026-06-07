@@ -37,13 +37,19 @@ class CategoryForm(forms.ModelForm):
 class ComponentCategoryChoiceField(forms.ModelChoiceField):
     def to_python(self, value):
         if value == 'new':
-            return value
+            return 'new'
         return super().to_python(value)
 
     def validate(self, value):
         if value == 'new':
             return
         super().validate(value)
+
+    def clean(self, value):
+        """Override clean to allow the 'new' sentinel value to bypass queryset validation."""
+        if value == 'new':
+            return 'new'
+        return super().clean(value)
 
 
 class ComponentForm(forms.ModelForm):
@@ -54,9 +60,8 @@ class ComponentForm(forms.ModelForm):
     category = ComponentCategoryChoiceField(
         queryset=Category.objects.all().order_by('name'),
         empty_label='Select a category',
-        widget=forms.Select(attrs={
-            'class': 'form-select'
-        })
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'})
     )
     new_category_name = forms.CharField(
         required=False,
@@ -88,19 +93,68 @@ class ComponentForm(forms.ModelForm):
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['new_category_name'].required = False
+        self.user = user
+        if self.instance and self.instance.pk and self.instance.category:
+            self.fields['category'].initial = self.instance.category
 
-        if not user or (not user.is_staff and not user.is_superuser):
-            existing_choices = list(self.fields['category'].choices)
-            if existing_choices and existing_choices[0][0] in ('', None):
-                self.fields['category'].choices = [
-                    existing_choices[0],
-                    ('new', '➕ Request New Category')
-                ] + existing_choices[1:]
-            else:
-                self.fields['category'].choices = [
-                    ('new', '➕ Request New Category')
-                ] + existing_choices
+        choices = list(self.fields['category'].choices)
+        if choices and choices[-1][0] != 'new':
+            choices.append(('new', '➕ Add New Category'))
+            self.fields['category'].choices = choices
+
+    def clean_new_category_name(self):
+        new_category_name = self.cleaned_data.get('new_category_name', '')
+        raw_category = self.data.get('category')
+
+        if raw_category == 'new':
+            trimmed_name = new_category_name.strip()
+            if not trimmed_name:
+                raise forms.ValidationError('New category name is required when adding a new category.')
+            return trimmed_name
+
+        return ''
+
+    def clean(self):
+        cleaned = super().clean()
+        raw_category = self.data.get('category', '').strip()
+        new_category_name = cleaned.get('new_category_name', '').strip()
+
+        # If 'new' is selected, require new_category_name
+        if raw_category == 'new':
+            if not new_category_name:
+                raise forms.ValidationError(
+                    {'category': 'New category name is required when selecting "Add New Category".'}
+                )
+            cleaned['category'] = None
+            cleaned['new_category_name'] = new_category_name
+        else:
+            # If not 'new', ensure a category is selected
+            category_obj = cleaned.get('category')
+            if not category_obj:
+                raise forms.ValidationError(
+                    {'category': 'Please select a category or add a new one.'}
+                )
+            cleaned['new_category_name'] = ''
+
+        return cleaned
+
+    def save(self, commit=True):
+        category_obj = self.cleaned_data.get('category')
+        new_category_name = self.cleaned_data.get('new_category_name', '').strip()
+
+        if not category_obj and new_category_name:
+            normalized_name = new_category_name.strip()
+            category_obj = Category.objects.filter(name__iexact=normalized_name).first()
+            if not category_obj:
+                category_obj = Category.objects.create(name=normalized_name)
+
+        if not category_obj:
+            raise forms.ValidationError(
+                'Category could not be resolved. Please select an existing category or provide a new category name.'
+            )
+
+        self.instance.category = category_obj
+        return super().save(commit=commit)
 
     def clean_name(self):
         """Validate that component name is not empty."""
@@ -115,56 +169,6 @@ class ComponentForm(forms.ModelForm):
         if description and len(description.strip()) == 0:
             raise forms.ValidationError('Component description cannot be empty.')
         return description
-
-    def clean_new_category_name(self):
-        new_category_name = self.cleaned_data.get('new_category_name', '')
-        # Use raw POST value to determine if user selected the 'new' option.
-        raw_category = self.data.get('category')
-
-        if raw_category == 'new':
-            trimmed_name = new_category_name.strip()
-            if not trimmed_name:
-                raise forms.ValidationError('New category name is required when requesting a new category.')
-            return trimmed_name
-
-        return ''
-
-    def clean(self):
-        """Ensure the model instance doesn't receive the literal 'new' string.
-
-        When a non-staff user requests a new category we need to keep the
-        selection available for the change request payload, but the
-        ModelForm's construct_instance will try to assign that value to the
-        FK on the model (raising the ValueError you saw). To avoid that we
-        replace the cleaned `category` value with None (so the model can be
-        constructed) while leaving the raw POST value intact for views to
-        read and persist into the change request payload.
-        """
-        cleaned = super().clean()
-        raw_category = self.data.get('category')
-        if raw_category == 'new':
-            # Remove `category` from cleaned_data so ModelForm doesn't try to
-            # assign NULL to the required FK during model validation. We will
-            # preserve the raw POST for the view to include in the change
-            # request payload.
-            cleaned.pop('category', None)
-        return cleaned
-
-    def _post_clean(self):
-        """Run the usual post-clean but suppress category null validation
-        when the user requested a new category.
-        """
-        super()._post_clean()
-        raw_category = self.data.get('category')
-        if raw_category == 'new':
-            # Remove any validation errors attached to the category field
-            # since this form intentionally defers category creation to
-            # moderation/approval.
-            try:
-                if 'category' in self._errors:
-                    del self._errors['category']
-            except Exception:
-                pass
 
 
 class WireSizeForm(forms.ModelForm):
