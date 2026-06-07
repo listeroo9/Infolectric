@@ -59,6 +59,22 @@
                     {% endif %}
                 </div>
 
+                <div id="new-category-field" class="mb-3 {% if form.category.value == 'new' %}d-block{% else %}d-none{% endif %}">
+                    <label for="{{ form.new_category_name.id_for_label }}" class="form-label">
+                        {{ form.new_category_name.label }}
+                        <span class="text-danger">*</span>
+                    </label>
+                    {{ form.new_category_name }}
+                    <div class="form-text">Request a new category if the correct category does not exist.</div>
+                    {% if form.new_category_name.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.new_category_name.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
                 <!-- DESCRIPTION FIELD -->
                 <div class="mb-3">
                     <label for="{{ form.description.id_for_label }}" class="form-label">
@@ -139,4 +155,29 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var categorySelect = document.querySelector('[name="category"]');
+        var newCategoryField = document.getElementById('new-category-field');
+
+        function toggleNewCategoryField() {
+            if (!categorySelect || !newCategoryField) {
+                return;
+            }
+            if (categorySelect.value === 'new') {
+                newCategoryField.classList.remove('d-none');
+                newCategoryField.classList.add('d-block');
+            } else {
+                newCategoryField.classList.remove('d-block');
+                newCategoryField.classList.add('d-none');
+            }
+        }
+
+        if (categorySelect) {
+            categorySelect.addEventListener('change', toggleNewCategoryField);
+            toggleNewCategoryField();
+        }
+    });
+</script>
 {% endblock %}

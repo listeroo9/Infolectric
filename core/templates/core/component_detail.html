@@ -69,6 +69,11 @@
         {% endif %}
     </div>
 </div>
+<div class="mt-4 mb-4">
+    <a href="{% url 'core:component-list' %}" class="glass-btn">
+        <i class="fas fa-arrow-left"></i> Back to Components
+    </a>
+</div>
 
 <div class="row">
     <!-- IMAGE -->
@@ -149,9 +154,5 @@
 </div>
 
 <!-- NAVIGATION -->
-<div class="mt-4 mb-4">
-    <a href="{% url 'core:component-list' %}" class="btn btn-outline-secondary">
-        <i class="fas fa-arrow-left"></i> Back to Components
-    </a>
-</div>
+
 {% endblock %}

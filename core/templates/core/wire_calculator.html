@@ -524,7 +524,6 @@
                               <thead>
                                 <tr>
                                   <th>Name</th>
-                                  <th>Category</th>
                                   <th>Power (W)</th>
                                   <th>Voltage (V)</th>
                                   <th>Current (A)</th>
@@ -534,7 +533,6 @@
                                 {% for appliance in explorer_results.compatible_appliances %}
                                   <tr>
                                     <td>{{ appliance.name }}</td>
-                                    <td>{{ appliance.category|default:'—' }}</td>
                                     <td>{{ appliance.power_watts }}</td>
                                     <td>{{ appliance.voltage }}</td>
                                     <td>{{ appliance.estimated_current }}</td>

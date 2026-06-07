@@ -8,6 +8,9 @@ from decimal import Decimal
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
+from io import BytesIO
+from PIL import Image
 from core.models import ApplianceLoad, Component, Category, WireSize, ChangeRequest
 from core import services
 
@@ -181,6 +184,14 @@ class ComponentViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '10kΩ Resistor')
 
+    def test_component_list_excludes_empty_categories_in_filter_dropdown(self):
+        """Empty categories should not appear in the component filter dropdown."""
+        Category.objects.create(name='Capacitors')
+        response = self.client.get(reverse('core:component-list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Resistors')
+        self.assertNotContains(response, 'Capacitors')
+
 
 class RequestWorkflowTest(TestCase):
     """Test change request submission and approval workflow."""
@@ -197,6 +208,7 @@ class RequestWorkflowTest(TestCase):
             'name': '1kΩ Resistor',
             'description': 'Standard 1kΩ resistor',
             'category': self.category.pk,
+            'reason': 'Testing create request',
         })
         self.assertEqual(response.status_code, 302)
         # Component create by non-staff should create a ChangeRequest with title equal to the name
@@ -208,6 +220,7 @@ class RequestWorkflowTest(TestCase):
             'name': '2kΩ Resistor',
             'description': 'Standard 2kΩ resistor',
             'category': self.category.pk,
+            'reason': 'Approve this component',
         })
         self.assertEqual(response.status_code, 302)
         request_obj = ChangeRequest.objects.get(title='2kΩ Resistor')
@@ -220,6 +233,63 @@ class RequestWorkflowTest(TestCase):
         request_obj.refresh_from_db()
         self.assertEqual(request_obj.status, ChangeRequest.STATUS_APPROVED)
         self.assertTrue(Component.objects.filter(name='2kΩ Resistor').exists())
+
+    def test_approving_new_category_component_request_creates_category_and_component(self):
+        self.client.login(username='user', password='testpass123')
+        response = self.client.post(reverse('core:component-create'), {
+            'name': '5kΩ Resistor',
+            'description': 'Resistor in a new user-requested category',
+            'category': 'new',
+            'new_category_name': 'Capacitors',
+            'reason': 'Request a new category with component',
+        })
+        self.assertEqual(response.status_code, 302)
+        request_obj = ChangeRequest.objects.get(title='5kΩ Resistor')
+        self.assertEqual(request_obj.payload.get('category'), 'new')
+        self.assertEqual(request_obj.payload.get('new_category_name'), 'Capacitors')
+
+        self.client.logout()
+        self.client.login(username='admin', password='testpass123')
+        response = self.client.post(reverse('core:moderation-request-approve', kwargs={'pk': request_obj.pk}), {
+            'admin_notes': 'Approve new category request',
+        })
+        self.assertEqual(response.status_code, 302)
+        request_obj.refresh_from_db()
+        self.assertEqual(request_obj.status, ChangeRequest.STATUS_APPROVED)
+        component = Component.objects.get(name='5kΩ Resistor')
+        self.assertEqual(component.category.name, 'Capacitors')
+
+    def test_image_upload_request_stores_image_path_and_approves(self):
+        self.client.login(username='user', password='testpass123')
+        image_io = BytesIO()
+        Image.new('RGB', (1, 1), color='white').save(image_io, format='PNG')
+        image_io.seek(0)
+        upload = SimpleUploadedFile(
+            'resistor.png',
+            image_io.read(),
+            content_type='image/png'
+        )
+        response = self.client.post(reverse('core:component-create'), {
+            'name': '3kΩ Resistor',
+            'description': 'Resistor with image',
+            'category': self.category.pk,
+            'image': upload,
+            'reason': 'Test image request',
+        })
+        self.assertEqual(response.status_code, 302)
+        request_obj = ChangeRequest.objects.get(title='3kΩ Resistor')
+        self.assertIn('path', request_obj.payload.get('image', {}))
+        self.client.logout()
+        self.client.login(username='admin', password='testpass123')
+        response = self.client.post(reverse('core:moderation-request-approve', kwargs={'pk': request_obj.pk}), {
+            'admin_notes': 'Approve image request',
+        })
+        self.assertEqual(response.status_code, 302)
+        request_obj.refresh_from_db()
+        self.assertEqual(request_obj.status, ChangeRequest.STATUS_APPROVED)
+        component = Component.objects.get(name='3kΩ Resistor')
+        self.assertTrue(component.image.name)
+        self.assertTrue(component.image.name.startswith('change_request_uploads/'))
 
 
 class CategoryViewTest(TestCase):

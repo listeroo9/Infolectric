@@ -6,8 +6,19 @@ Includes Component, Category, and WireSize models.
 from decimal import Decimal, InvalidOperation
 from django.conf import settings
 from django.db import models
+from django.db.models import Count
 from django.core.validators import MinValueValidator
 from django.utils import timezone
+from django.utils.html import format_html
+from django.conf import settings
+from django.dispatch import receiver
+from django.db.models.signals import post_save
+
+try:
+    # allauth SocialAccount may or may not be installed in some environments
+    from allauth.socialaccount.models import SocialAccount
+except Exception:
+    SocialAccount = None
 
 
 class Category(models.Model):
@@ -22,6 +33,10 @@ class Category(models.Model):
     class Meta:
         ordering = ['name']
         verbose_name_plural = 'Categories'
+
+    @classmethod
+    def with_components(cls):
+        return cls.objects.annotate(component_count=Count('components')).filter(component_count__gt=0)
 
     def __str__(self):
         return self.name
@@ -135,6 +150,44 @@ class ApplianceLoad(models.Model):
         super().save(*args, **kwargs)
 
 
+class UserProfile(models.Model):
+    """Stores optional user profile information and avatars."""
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
+    profile_image = models.ImageField(upload_to='profile_images/', blank=True, null=True)
+    google_avatar_url = models.URLField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Profile for {self.user.username}"
+
+
+# Automatically create a UserProfile when a new User is created
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.create(user=instance)
+
+
+# When a SocialAccount is saved (e.g., Google login), store the avatar URL
+if SocialAccount is not None:
+    @receiver(post_save, sender=SocialAccount)
+    def update_profile_from_socialaccount(sender, instance, **kwargs):
+        try:
+            user = instance.user
+            extra = instance.extra_data or {}
+            # Common key for Google profile picture
+            avatar = extra.get('picture') or extra.get('avatar_url') or extra.get('picture_url')
+            if avatar:
+                profile, _ = UserProfile.objects.get_or_create(user=user)
+                if profile.google_avatar_url != avatar:
+                    profile.google_avatar_url = avatar
+                    profile.save()
+        except Exception:
+            # Avoid breaking auth flow on unexpected data
+            pass
+
+
 class ChangeRequest(models.Model):
     """Tracks user contribution requests and admin approval workflow."""
 
@@ -245,12 +298,32 @@ class ChangeRequest(models.Model):
 
         create_kwargs = {}
         for key, value in self.payload.items():
+            if key == 'new_category_name':
+                continue
+            if (
+                model_class is Component and
+                key == 'category' and
+                value == 'new'
+            ):
+                new_category_name = str(self.payload.get('new_category_name', '')).strip()
+                if not new_category_name:
+                    raise ValueError('New category name is required for new category requests.')
+                category_obj = Category.objects.filter(name__iexact=new_category_name).first()
+                if not category_obj:
+                    category_obj = Category.objects.create(name=new_category_name)
+                create_kwargs['category_id'] = category_obj.pk
+                continue
+
             try:
                 field = model_class._meta.get_field(key)
             except Exception:
                 create_kwargs[key] = value
             else:
-                if isinstance(field, models.ForeignKey):
+                if isinstance(field, models.FileField) or isinstance(field, models.ImageField):
+                    if isinstance(value, dict):
+                        value = value.get('path') or value.get('name')
+                    create_kwargs[key] = value
+                elif isinstance(field, models.ForeignKey):
                     create_kwargs[f'{key}_id'] = value
                 else:
                     create_kwargs[key] = value
@@ -267,12 +340,32 @@ class ChangeRequest(models.Model):
             raise ValueError('Target object not found for edit request.')
 
         for key, value in self.payload.items():
+            if key == 'new_category_name':
+                continue
+            if (
+                isinstance(target, Component) and
+                key == 'category' and
+                value == 'new'
+            ):
+                new_category_name = str(self.payload.get('new_category_name', '')).strip()
+                if not new_category_name:
+                    raise ValueError('New category name is required for new category requests.')
+                category_obj = Category.objects.filter(name__iexact=new_category_name).first()
+                if not category_obj:
+                    category_obj = Category.objects.create(name=new_category_name)
+                setattr(target, 'category_id', category_obj.pk)
+                continue
+
             try:
                 field = target._meta.get_field(key)
             except Exception:
                 setattr(target, key, value)
             else:
-                if isinstance(field, models.ForeignKey):
+                if isinstance(field, models.FileField) or isinstance(field, models.ImageField):
+                    if isinstance(value, dict):
+                        value = value.get('path') or value.get('name')
+                    setattr(target, key, value)
+                elif isinstance(field, models.ForeignKey):
                     setattr(target, f'{key}_id', value)
                 else:
                     setattr(target, key, value)
@@ -289,6 +382,13 @@ class ChangeRequest(models.Model):
 
     def _display_value_for_field(self, model_class, field_name, value):
         """Return a human-friendly display value for a field value (resolves FKs)."""
+        if (
+            self.target_model == self.TARGET_MODEL_COMPONENT and
+            field_name == 'category' and
+            value == 'new'
+        ):
+            return self.payload.get('new_category_name') or 'Requested New Category'
+
         if model_class is None:
             return value
         try:
@@ -301,6 +401,23 @@ class ChangeRequest(models.Model):
             try:
                 obj = rel_model.objects.filter(pk=value).first()
                 return str(obj) if obj is not None else value
+            except Exception:
+                return value
+        # File/Image fields -> render a thumbnail or link when possible.
+        if isinstance(field, (models.FileField, models.ImageField)) and value:
+            try:
+                # payload may store {'path': 'relative/path.jpg'} or {'name': 'file.jpg'} or a plain path
+                if isinstance(value, dict):
+                    file_path = value.get('path') or value.get('name')
+                elif hasattr(value, 'name'):
+                    file_path = value.name
+                else:
+                    file_path = str(value)
+
+                # Build URL using MEDIA_URL
+                media_url = getattr(settings, 'MEDIA_URL', '/media/')
+                url = f"{media_url}{file_path}".replace('\\', '/')
+                return format_html('<img src="{}" class="img-fluid img-thumbnail" style="max-width:200px;">', url)
             except Exception:
                 return value
         return value
@@ -318,14 +435,28 @@ class ChangeRequest(models.Model):
 
         if self.request_type == self.REQUEST_TYPE_ADD:
             for key, new_val in payload.items():
-                label = getattr(model_class._meta.get_field(key), 'verbose_name', key).title() if model_class else key.title()
+                if model_class is not None:
+                    try:
+                        field = model_class._meta.get_field(key)
+                        label = getattr(field, 'verbose_name', key).title()
+                    except Exception:
+                        label = key.replace('_', ' ').title()
+                else:
+                    label = key.replace('_', ' ').title()
                 new_display = self._display_value_for_field(model_class, key, new_val)
                 summary.append((label, None, new_display))
 
         elif self.request_type == self.REQUEST_TYPE_EDIT:
             target = self.get_target_object()
             for key, new_val in payload.items():
-                label = getattr(target._meta.get_field(key), 'verbose_name', key).title() if target is not None else key.title()
+                if target is not None:
+                    try:
+                        field = target._meta.get_field(key)
+                        label = getattr(field, 'verbose_name', key).title()
+                    except Exception:
+                        label = key.replace('_', ' ').title()
+                else:
+                    label = key.replace('_', ' ').title()
                 old_raw = getattr(target, key, None) if target is not None else None
                 old_display = self._display_value_for_field(model_class, key, old_raw) if target is not None else None
                 new_display = self._display_value_for_field(model_class, key, new_val)

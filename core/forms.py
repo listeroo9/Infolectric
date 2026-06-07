@@ -11,6 +11,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from .models import Component, Category, WireSize, ChangeRequest
 from .models import ApplianceLoad
 from . import services
+from django.core.files.uploadedfile import InMemoryUploadedFile
 
 
 class CategoryForm(forms.ModelForm):
@@ -33,11 +34,39 @@ class CategoryForm(forms.ModelForm):
         }
 
 
+class ComponentCategoryChoiceField(forms.ModelChoiceField):
+    def to_python(self, value):
+        if value == 'new':
+            return value
+        return super().to_python(value)
+
+    def validate(self, value):
+        if value == 'new':
+            return
+        super().validate(value)
+
+
 class ComponentForm(forms.ModelForm):
     """
     Form for creating and editing electrical components.
     Includes validation for component details.
     """
+    category = ComponentCategoryChoiceField(
+        queryset=Category.objects.all().order_by('name'),
+        empty_label='Select a category',
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        })
+    )
+    new_category_name = forms.CharField(
+        required=False,
+        label='New Category Name',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter new category name'
+        })
+    )
+
     class Meta:
         model = Component
         fields = ['name', 'description', 'category', 'image']
@@ -51,14 +80,27 @@ class ComponentForm(forms.ModelForm):
                 'placeholder': 'Enter detailed component description',
                 'rows': 5
             }),
-            'category': forms.Select(attrs={
-                'class': 'form-select'
-            }),
             'image': forms.FileInput(attrs={
                 'class': 'form-control',
                 'accept': 'image/*'
             })
         }
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['new_category_name'].required = False
+
+        if not user or (not user.is_staff and not user.is_superuser):
+            existing_choices = list(self.fields['category'].choices)
+            if existing_choices and existing_choices[0][0] in ('', None):
+                self.fields['category'].choices = [
+                    existing_choices[0],
+                    ('new', '➕ Request New Category')
+                ] + existing_choices[1:]
+            else:
+                self.fields['category'].choices = [
+                    ('new', '➕ Request New Category')
+                ] + existing_choices
 
     def clean_name(self):
         """Validate that component name is not empty."""
@@ -73,6 +115,56 @@ class ComponentForm(forms.ModelForm):
         if description and len(description.strip()) == 0:
             raise forms.ValidationError('Component description cannot be empty.')
         return description
+
+    def clean_new_category_name(self):
+        new_category_name = self.cleaned_data.get('new_category_name', '')
+        # Use raw POST value to determine if user selected the 'new' option.
+        raw_category = self.data.get('category')
+
+        if raw_category == 'new':
+            trimmed_name = new_category_name.strip()
+            if not trimmed_name:
+                raise forms.ValidationError('New category name is required when requesting a new category.')
+            return trimmed_name
+
+        return ''
+
+    def clean(self):
+        """Ensure the model instance doesn't receive the literal 'new' string.
+
+        When a non-staff user requests a new category we need to keep the
+        selection available for the change request payload, but the
+        ModelForm's construct_instance will try to assign that value to the
+        FK on the model (raising the ValueError you saw). To avoid that we
+        replace the cleaned `category` value with None (so the model can be
+        constructed) while leaving the raw POST value intact for views to
+        read and persist into the change request payload.
+        """
+        cleaned = super().clean()
+        raw_category = self.data.get('category')
+        if raw_category == 'new':
+            # Remove `category` from cleaned_data so ModelForm doesn't try to
+            # assign NULL to the required FK during model validation. We will
+            # preserve the raw POST for the view to include in the change
+            # request payload.
+            cleaned.pop('category', None)
+        return cleaned
+
+    def _post_clean(self):
+        """Run the usual post-clean but suppress category null validation
+        when the user requested a new category.
+        """
+        super()._post_clean()
+        raw_category = self.data.get('category')
+        if raw_category == 'new':
+            # Remove any validation errors attached to the category field
+            # since this form intentionally defers category creation to
+            # moderation/approval.
+            try:
+                if 'category' in self._errors:
+                    del self._errors['category']
+            except Exception:
+                pass
 
 
 class WireSizeForm(forms.ModelForm):
@@ -236,13 +328,17 @@ class WireExplorerForm(forms.Form):
 class ApplianceLoadForm(forms.ModelForm):
     class Meta:
         model = ApplianceLoad
-        fields = ['name', 'voltage', 'power_watts', 'category']
+        fields = ['name', 'voltage', 'power_watts']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'voltage': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any'}),
             'power_watts': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any'}),
-            'category': forms.Select(attrs={'class': 'form-select'}),
         }
+    
+
+class UserProfileForm(forms.Form):
+    profile_image = forms.ImageField(required=False, widget=forms.ClearableFileInput(attrs={'class': 'form-control'}))
+    remove_image = forms.BooleanField(required=False, initial=False, help_text='Remove uploaded image and revert to Google/default avatar')
 
 
 class ChangeRequestForm(forms.ModelForm):
@@ -320,12 +416,11 @@ class ComponentRequestPayloadForm(forms.ModelForm):
 class ApplianceLoadRequestPayloadForm(forms.ModelForm):
     class Meta:
         model = ApplianceLoad
-        fields = ['name', 'voltage', 'power_watts', 'category']
+        fields = ['name', 'voltage', 'power_watts']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'voltage': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any'}),
             'power_watts': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any'}),
-            'category': forms.Select(attrs={'class': 'form-select'}),
         }
 
 

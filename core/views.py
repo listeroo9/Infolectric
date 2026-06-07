@@ -4,6 +4,8 @@ Includes CRUD views, search, filtering, and calculator functionality.
 """
 
 from decimal import Decimal
+import os
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import (
     ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
@@ -14,7 +16,10 @@ from django.contrib.auth import login as auth_login
 from django.urls import reverse_lazy
 from django.db.models import Q
 from django.contrib import messages
+from django.core.files.storage import default_storage
+from django.utils.crypto import get_random_string
 from .models import Component, Category, WireSize, ChangeRequest
+from .models import ApplianceLoad, UserProfile
 from .forms import (
     ComponentForm, CategoryForm, WireSizeForm,
     WireCalculatorForm, WireExplorerForm,
@@ -24,6 +29,7 @@ from .forms import (
     CategoryRequestPayloadForm, RequestAdminForm,
     InfolectricAuthenticationForm, UserRegistrationForm
 )
+from .forms import UserProfileForm
 from .models import ApplianceLoad
 from . import services
 
@@ -196,7 +202,7 @@ class ComponentListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Add categories to context for filtering dropdown
-        context['categories'] = Category.objects.all()
+        context['categories'] = Category.with_components().order_by('name')
         context['search_query'] = self.request.GET.get('q', '')
         context['selected_category'] = self.request.GET.get('category', '')
         return context
@@ -230,6 +236,11 @@ class ComponentCreateView(LoginRequiredMixin, CreateView):
     template_name = 'core/component_form.html'
     success_url = reverse_lazy('core:component-list')
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
         user = self.request.user
         if user.is_staff or user.is_superuser:
@@ -242,6 +253,18 @@ class ComponentCreateView(LoginRequiredMixin, CreateView):
             return self.form_invalid(form)
 
         payload = normalize_payload(form.cleaned_data)
+        # Preserve the raw selection for 'new' category from POST so the
+        # change request payload contains the sentinel 'new' string (the
+        # models logic looks for that). The form's cleaned_data may have
+        # `category` replaced with None to avoid assignment errors, so use
+        # the POST value to decide whether this is a new-category request.
+        is_new_category = self.request.POST.get('category') == 'new'
+        if not is_new_category:
+            payload.pop('new_category_name', None)
+        else:
+            # Ensure payload records the sentinel so approval logic sees it.
+            payload['category'] = 'new'
+
         title = form.cleaned_data.get('name') or 'Create Component'
         cr = create_change_request(
             user=user,
@@ -262,6 +285,11 @@ class ComponentUpdateView(LoginRequiredMixin, UpdateView):
     form_class = ComponentForm
     template_name = 'core/component_form.html'
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def get_success_url(self):
         return reverse_lazy('core:component-detail', kwargs={'pk': self.object.pk})
 
@@ -278,6 +306,8 @@ class ComponentUpdateView(LoginRequiredMixin, UpdateView):
 
         obj = self.get_object()
         payload = normalize_payload(form.cleaned_data)
+        if payload.get('category') != 'new':
+            payload.pop('new_category_name', None)
         title = form.cleaned_data.get('name') or str(obj)
         cr = create_change_request(
             user=user,
@@ -351,7 +381,42 @@ class ProfileView(LoginRequiredMixin, TemplateView):
             'favorite_appliances_count': 0,
             'submission_requests_count': ChangeRequest.objects.filter(user=self.request.user).count(),
         })
+        # Ensure the user's profile exists and add to context for templates
+        profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
+        context['profile'] = profile
         return context
+
+
+class ProfileEditView(LoginRequiredMixin, TemplateView):
+    template_name = 'core/profile_edit.html'
+
+    def get(self, request, *args, **kwargs):
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        form = UserProfileForm(initial={})
+        return render(request, self.template_name, {'form': form, 'profile': profile})
+
+    def post(self, request, *args, **kwargs):
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        form = UserProfileForm(request.POST, request.FILES)
+        if form.is_valid():
+            if form.cleaned_data.get('remove_image'):
+                # delete existing image file
+                if profile.profile_image:
+                    try:
+                        profile.profile_image.delete(save=False)
+                    except Exception:
+                        pass
+                    profile.profile_image = None
+
+            uploaded = form.cleaned_data.get('profile_image')
+            if uploaded:
+                profile.profile_image = uploaded
+
+            profile.save()
+            messages.success(request, 'Profile updated successfully.')
+            return redirect('core:profile')
+
+        return render(request, self.template_name, {'form': form, 'profile': profile})
 
 
 def get_request_payload_form(target_model, request_type, data=None, instance=None, initial=None):
@@ -371,12 +436,27 @@ def get_request_payload_form(target_model, request_type, data=None, instance=Non
     return form_class(prefix='payload', initial=initial)
 
 
+def _save_uploaded_file_to_storage(uploaded_file):
+    filename = os.path.basename(uploaded_file.name)
+    unique_name = f"{get_random_string(12)}_{filename}"
+    relative_path = os.path.join('change_request_uploads', unique_name).replace('\\', '/')
+    default_storage.save(relative_path, uploaded_file)
+    return relative_path
+
+
 def normalize_payload(cleaned_data):
     def normalize_value(value):
         if hasattr(value, 'pk'):
             return value.pk
         if isinstance(value, Decimal):
             return float(value)
+        # Uploaded files (InMemoryUploadedFile, TemporaryUploadedFile) are
+        # not JSON serializable. Save the file to media and preserve the path.
+        if hasattr(value, 'name') and not isinstance(value, (str, bytes)):
+            try:
+                return {'name': value.name, 'path': _save_uploaded_file_to_storage(value)}
+            except Exception:
+                return {'name': value.name}
         if isinstance(value, dict):
             return {k: normalize_value(v) for k, v in value.items()}
         if isinstance(value, (list, tuple, set)):

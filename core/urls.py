@@ -80,6 +80,7 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(next_page='core:index'), name='logout'),
     path('register/', views.register, name='register'),
     path('profile/', views.ProfileView.as_view(), name='profile'),
+    path('profile/edit/', views.ProfileEditView.as_view(), name='profile-edit'),
     path('requests/', views.ChangeRequestListView.as_view(), name='request-list'),
     path('requests/<int:pk>/', views.ChangeRequestDetailView.as_view(), name='request-detail'),
     path('requests/<int:pk>/edit/', views.ChangeRequestUpdateView.as_view(), name='request-edit'),
